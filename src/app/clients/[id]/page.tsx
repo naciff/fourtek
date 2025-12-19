@@ -571,7 +571,7 @@ export default function EditClientPage() {
                               if (d.length !== 14) { setCnpjError("Inválido"); return; }
                               setCnpjLoading(true);
                               const res = await fetch(`/api/cnpj?cnpj=${d}`);
-                              if (res.ok) { const info = await res.json(); setForm(f => ({ ...f, ...info })); }
+                              if (res.ok) { const info = await res.json(); setForm((f: any) => ({ ...f, ...info })); }
                               setCnpjLoading(false);
                             }} className={btnSecondary}>{cnpjLoading ? "..." : "Buscar"}</button>
                           </div>
@@ -590,7 +590,7 @@ export default function EditClientPage() {
                               if (d.length !== 8) return;
                               setCepLoading(true);
                               const res = await fetch(`/api/cep?cep=${d}`);
-                              if (res.ok) { const info = await res.json(); setForm(f => ({ ...f, ...info })); }
+                              if (res.ok) { const info = await res.json(); setForm((f: any) => ({ ...f, ...info })); }
                               setCepLoading(false);
                             }} className={btnSecondary}>{cepLoading ? "..." : "Buscar"}</button>
                           </div>
