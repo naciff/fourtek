@@ -187,6 +187,7 @@ export default function EditClientPage() {
     setForm((f: any) => ({ ...f, representatives_text: names }));
   }, [selectedReps, repsList]);
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => { if (tab === 'inventario') { void loadInvHist(); } else if (tab === 'acesso') { void loadAcessos(); } else if (tab === 'servidores') { void loadServers(); } }, [tab, id]);
 
   function onChange(e: React.ChangeEvent<any>) {
@@ -765,7 +766,7 @@ export default function EditClientPage() {
             <p className="text-sm text-gray-500 mb-4">Gerencie os servidores vinculados a este cliente.</p>
             {servers.length === 0 ? (
               <div className="text-center py-8 bg-gray-50 rounded border border-dashed text-gray-400">
-                Nenhum servidor cadastrado. Use a aba "Inventário" para adicionar itens ou implemente o cadastro detalhado aqui.
+                Nenhum servidor cadastrado. Use a aba &quot;Inventário&quot; para adicionar itens ou implemente o cadastro detalhado aqui.
               </div>
             ) : (
               <ul className="space-y-2">
