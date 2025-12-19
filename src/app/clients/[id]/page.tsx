@@ -190,6 +190,39 @@ export default function EditClientPage() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => { if (tab === 'inventario') { void loadInvHist(); } else if (tab === 'acesso') { void loadAcessos(); } else if (tab === 'servidores') { void loadServers(); } }, [tab, id]);
 
+  function buildAddress(f: any) {
+    if (!f) return "";
+    return [f.street, f.number, f.complement, f.neighborhood, f.city, f.state, f.zip]
+      .map((v: any) => String(v || "").trim())
+      .filter(Boolean)
+      .join(", ");
+  }
+  const mapsUrl = form ? `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(buildAddress(form))}` : "#";
+  const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || "";
+  async function fetchCoords() {
+    const addr = buildAddress(form);
+    if (!addr) return;
+    try {
+      if (apiKey) {
+        const res = await fetch(`https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(addr)}&key=${apiKey}`);
+        const data = await res.json();
+        const loc = data?.results?.[0]?.geometry?.location;
+        if (loc && typeof loc.lat === "number" && typeof loc.lng === "number") {
+          setForm((f: any) => ({ ...f, latitude: String(loc.lat), longitude: String(loc.lng) }));
+          return;
+        }
+      }
+      const osm = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(addr)}`, { headers: { "Accept": "application/json", "User-Agent": "FourtekApp/1.0" } });
+      const arr = await osm.json();
+      const first = Array.isArray(arr) ? arr[0] : null;
+      const lat = first?.lat ? Number(first.lat) : undefined;
+      const lon = first?.lon ? Number(first.lon) : undefined;
+      if (typeof lat === "number" && typeof lon === "number") {
+        setForm((f: any) => ({ ...f, latitude: String(lat), longitude: String(lon) }));
+      }
+    } catch { }
+  }
+
   function onChange(e: React.ChangeEvent<any>) {
     const name = e.target.name;
     const type = e.target.type;
@@ -593,6 +626,14 @@ export default function EditClientPage() {
                               if (res.ok) { const info = await res.json(); setForm((f: any) => ({ ...f, ...info })); }
                               setCepLoading(false);
                             }} className={btnSecondary}>{cepLoading ? "..." : "Buscar"}</button>
+                            <a href={mapsUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 text-sm text-brand-blue-700 px-3 py-2 h-[42px] border border-transparent hover:bg-gray-50 rounded" title="Abrir rota no Google Maps">
+                              <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C8.686 2 6 4.686 6 8c0 5.25 6 12 6 12s6-6.75 6-12c0-3.314-2.686-6-6-6zm0 8.5A2.5 2.5 0 1 1 12 5a2.5 2.5 0 0 1 0 5.5z" /></svg>
+                              <span className="hidden sm:inline">Rota</span>
+                            </a>
+                            <button type="button" onClick={fetchCoords} className="inline-flex items-center gap-2 text-sm text-brand-green-700 px-3 py-2 h-[42px] border border-transparent hover:bg-gray-50 rounded" title="Buscar coordenadas automaticamente">
+                              <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a10 10 0 100 20 10 10 0 000-20zm1 5h-2v5H6v2h5v5h2v-5h5v-2h-5V7z" /></svg>
+                              <span className="hidden sm:inline">Coords</span>
+                            </button>
                           </div>
                         )
                       }
