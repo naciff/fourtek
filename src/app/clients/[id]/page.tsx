@@ -791,7 +791,7 @@ export default function EditClientPage() {
       {showRepCreateModal && (
         <RepresentativeCreateModal
           onClose={() => setShowRepCreateModal(false)}
-          onSuccess={(newRep) => {
+          onCreated={(newRep) => {
             setRepsList((prev) => [...prev, newRep]);
             setSelectedReps((prev) => [...prev, newRep.id]);
             setShowRepCreateModal(false);
