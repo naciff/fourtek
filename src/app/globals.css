@@ -1,0 +1,70 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --bg: #36a78b;
+}
+
+html,
+body {
+  height: 100%;
+}
+
+body {
+  @apply bg-white text-gray-900 dark:bg-gray-900 dark:text-gray-100;
+}
+
+.bg-brand-green-600 {
+  background-color: #36a78b !important;
+}
+
+.text-brand-green-600 {
+  color: #36a78b !important;
+}
+
+.hover\:bg-brand-green-600:hover {
+  background-color: #2f9279 !important;
+}
+
+.bg-brand-green-100 {
+  background-color: #d9f3ea;
+}
+
+.app-sidebar {
+  width: 240px;
+  transition: all 0.3s ease-in-out;
+}
+
+body[data-sidebar="collapsed"] .app-sidebar {
+  width: 64px;
+}
+
+body[data-sidebar="collapsed"] .app-sidebar .label {
+  display: none;
+}
+
+body[data-sidebar="collapsed"] .app-sidebar .link {
+  justify-content: center;
+}
+
+body[data-sidebar="collapsed"] .app-sidebar summary .label {
+  display: none;
+}
+
+body[data-sidebar="collapsed"] .app-sidebar .section-title {
+  display: none;
+}
+
+body[data-sidebar="collapsed"] .app-sidebar .sidebar-arrow {
+  display: none;
+}
+
+/* removed duplicate legacy sidebar rules */
+table.table-zebra tbody tr:nth-child(odd) {
+  background-color: #f7f7f7;
+}
+
+table.table-zebra tbody tr:nth-child(even) {
+  background-color: #ededed;
+}
