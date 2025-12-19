@@ -541,11 +541,50 @@ export default function EditClientPage() {
                         </div>
                       </div>
                     </div>
+                  ) : sec.title === "Contatos" ? (
+                    <div className="sm:col-span-2 space-y-4">
+                      <div className="flex flex-wrap gap-2">
+                        {contacts.map((c, i) => (
+                          <span key={i} className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                            {c.name} ({c.phone})
+                            <button type="button" onClick={async () => {
+                              if ((c as any).id) {
+                                await supabase.from('client_contacts').delete().eq('id', (c as any).id);
+                              }
+                              setContacts(prev => prev.filter((_, idx) => idx !== i));
+                            }} className="ml-1 text-gray-400 hover:text-gray-600">×</button>
+                          </span>
+                        ))}
+                      </div>
+                      <div className="flex gap-2">
+                        <div className="flex-1">
+                          <FloatingLabelInput label="Nome Contato" name="contact_name" value={form.contact_name || ""} onChange={onChange} />
+                        </div>
+                        <div className="flex-1">
+                          <FloatingLabelInput label="Telefone" name="contact_phone" value={form.contact_phone || ""} onChange={onChange} />
+                        </div>
+                        <button type="button" onClick={async () => {
+                          const name = form.contact_name?.trim();
+                          const phone = form.contact_phone?.trim();
+                          if (!name) return;
+
+                          const { data: userData } = await supabase.auth.getUser();
+                          if (userData.user) {
+                            const { data } = await supabase.from('client_contacts').insert({ client_id: id, user_id: userData.user.id, name, phone }).select().single();
+                            if (data) {
+                              setContacts(prev => [...prev, { name: data.name, phone: data.phone, id: data.id } as any]);
+                              setForm(f => ({ ...f, contact_name: '', contact_phone: '' }));
+                            }
+                          }
+                        }} className={btnPrimary}>+ Adicionar</button>
+                      </div>
+                    </div>
                   ) : (
                     sec.fields.map(key => {
                       // Filter logic
                       if (key === "cancellation_date" && form.situation !== "Cancelado") return null;
                       if (sec.title === "Contrato" && (key === "implemented" || key === "signed")) return null; // handled via checkbox group
+                      if (sec.title === "Contatos" && (key === "contact_name" || key === "contact_phone")) return null; // handled via custom section
 
                       const labelText = labelMap[key] || key;
                       const isReq = requiredFields.has(key) || (hasCloud && (key === "cloud_size" || key === "cloud_date"));
