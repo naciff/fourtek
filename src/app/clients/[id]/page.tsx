@@ -545,7 +545,7 @@ export default function EditClientPage() {
     if (error) {
       alert("Erro ao salvar servidor: " + error.message);
     } else {
-      setServerForm({ hostname: '', ip_address: '', os: '', description: '', username: '', password: '' });
+      setServerForm({ hostname: '', ip_address: '', os: '', description: '', username: '', password: '', external_link: '', equipment_model: '', disk_qty: '', disk_size: '' });
       setShowServerForm(false);
       setEditingServerId(null);
       await loadServers();
@@ -923,7 +923,7 @@ export default function EditClientPage() {
                           const { data } = await supabase.from('client_contacts').insert({ client_id: id, user_id: userData.user.id, name, phone }).select().single();
                           if (data) {
                             setContacts(prev => [...prev, { name: data.name, phone: data.phone, id: data.id } as any]);
-                            setForm(f => ({ ...f, contact_name: '', contact_phone: '' }));
+                            setForm((f: any) => ({ ...f, contact_name: '', contact_phone: '' }));
                           }
                         }
                       }} className={btnPrimary}>+ Adicionar</button>
