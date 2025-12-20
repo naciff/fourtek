@@ -1157,7 +1157,7 @@ export default function EditClientPage({ clientId }: { clientId?: string }) {
           (['acesso', 'inventario', 'servidores', 'sistemas', 'prov74', 'pcn', 'relatorios', 'dadosadicionais'] as const).map((t) => (
             <button key={t} onClick={() => setTab(t)} className={navTabClass(t)}>
               {tabIcons[t]}
-              {t === 'dados' ? 'Dados do Cliente' : t === 'inventario' ? 'Inventário' : t === 'acesso' ? 'Dados de Acesso' : t === 'servidores' ? 'Servidores' : t === 'sistemas' ? 'Sistemas' : t === 'prov74' ? 'CheckList Prov. 74' : t === 'relatorios' ? 'Relatórios' : t === 'pcn' ? 'PCN' : 'Dados Adicionais'}
+              {t === 'inventario' ? 'Inventário' : t === 'acesso' ? 'Dados de Acesso' : t === 'servidores' ? 'Servidores' : t === 'sistemas' ? 'Sistemas' : t === 'prov74' ? 'CheckList Prov. 74' : t === 'relatorios' ? 'Relatórios' : t === 'pcn' ? 'PCN' : 'Dados Adicionais'}
             </button>
           ))
         )}
