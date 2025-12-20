@@ -13,11 +13,49 @@ import { FloatingLabelTextarea } from "@/components/ui/FloatingLabelTextarea";
 // import Prov74Section from "@/components/client/Prov74Section"; 
 // import RelatoriosSection from "@/components/client/RelatoriosSection";
 
-export default function EditClientPage() {
+const PROV74_COLUMNS = [
+  ['checkmk', 'ip_fixo'],
+  ['energia_estavel', 'link_internet', 'endereco_eletronico', 'cpd'],
+  ['impressora', 'licencas_originais', 'switchH', 'firewall'],
+  ['nobreak', 'storage', 'backup_nuvem', 'servidor_replicacao']
+];
+
+const PROV74_OPTIONS = PROV74_COLUMNS.flat();
+
+function formatProv74Label(opt: string) {
+  const map: Record<string, string> = {
+    checkmk: 'CheckMK Instalado',
+    ip_fixo: 'IP Fixo',
+    energia_estavel: 'Energia Estável',
+    link_internet: 'Link Internet (mínimo 10 Mb)',
+    endereco_eletronico: 'Endereço Eletrônico',
+    cpd: 'CPD (Isolado/Refrigeração)',
+    impressora: 'Impressoras e Scanners',
+    licencas_originais: 'Licenças Originais',
+    switchH: 'Switch',
+    firewall: 'Firewall',
+    nobreak: 'Nobreak (30 minutos autonomia)',
+    storage: 'Storage (físico ou virtual)',
+    backup_nuvem: 'Backup em Nuvem',
+    servidor_replicacao: 'Servidor Replicação'
+  };
+  return map[opt] || opt.replace(/_/g, ' ').replace(/^./, str => str.toUpperCase());
+}
+const DADOS_ADICIONAIS_TYPES = [
+  'Roteador', 'Rede Wi-Fi', 'Nobreak', 'Modem', 'Switch', 'Outros'
+];
+
+const DEFAULT_FORM_STATE = {
+  corporate_name: "", trade_name: "", cnpj: "", state_registration: "", street: "", number: "", neighborhood: "", complement: "", city: "", state: "", zip: "", phone: "", email: "", website: "", situation: "Ativo", company_type: "Empresa", cloud_size: "", cloud_date: "", client_contract: "", alias: "", contract_done: false, signed: false, implemented: false, contract_value: "", contract_value_details: "", installation_date: "", cancellation_date: "", contact_name: "", contact_phone: "", position: "", services: "", logo_url: "", contract_image_url: "", cloud_image_url: "", representatives_text: "", notes: "", consulta_cnpj: "", cns: ""
+};
+
+export default function EditClientPage({ clientId }: { clientId?: string }) {
   const supabase = supabaseBrowser();
   const router = useRouter();
   const params = useParams();
-  const id = params?.id as string;
+  const idRaw = clientId || (params?.id as string);
+  const isNew = idRaw === 'new';
+  const id = isNew ? '' : idRaw;
 
   const btnBase = "inline-flex items-center justify-center rounded-md h-10 px-4 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50";
   const btnPrimary = `${btnBase} bg-brand-blue-600 text-white hover:bg-brand-blue-700 shadow-sm`;
@@ -27,7 +65,7 @@ export default function EditClientPage() {
   const btnBlue = `${btnBase} bg-brand-blue-600 text-white hover:bg-brand-blue-700`;
 
   const [tab, setTab] = useState<'dados' | 'inventario' | 'acesso' | 'servidores' | 'prov74' | 'relatorios' | 'pcn' | 'dadosadicionais' | 'sistemas'>('dados');
-  const [form, setForm] = useState<any>(null);
+  const [form, setForm] = useState<any>(isNew ? DEFAULT_FORM_STATE : null);
   const [activeTab, setActiveTab] = useState("Empresa");
   const [error, setError] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
@@ -68,7 +106,7 @@ export default function EditClientPage() {
   const [editingAcessoId, setEditingAcessoId] = useState<string | null>(null);
 
   const [servers, setServers] = useState<any[]>([]);
-  const [serverForm, setServerForm] = useState({ hostname: '', ip_address: '', os: '', description: '', username: '', password: '', external_link: '', equipment_model: '', disk_qty: '', disk_size: '' });
+  const [serverForm, setServerForm] = useState({ hostname: '', ip_address: '', os: '', description: '', username: '', password: '', external_link: '', equipment_model: '', disk_qty: '', disk_size: '', server_brand: '', storage_brand: '' });
   const [serverLoading, setServerLoading] = useState(false);
   const [showServerForm, setShowServerForm] = useState(false);
   const [editingServerId, setEditingServerId] = useState<string | null>(null);
@@ -183,39 +221,62 @@ export default function EditClientPage() {
 
   useEffect(() => {
     async function load() {
-      const { data } = await supabase.from("clients").select("*").eq("id", id).single();
-      const raw = String((data as any)?.cns ?? "");
-      const digits = validators.digits(raw);
-      const padded = digits ? digits.padStart(6, "0") : "";
-      setForm({ ...data, cns: padded ? formatCNS(padded) : "" });
+      setLoading(true);
 
-      let svc = await supabase.from("services").select("id,name,slug").order("name");
-      let list = svc.data ?? [];
-      if (!list.length) {
-        // Auto-seed handled in new page, assumed existing here
+      let data: any = isNew ? { ...DEFAULT_FORM_STATE } : null;
+
+      if (!isNew) {
+        const res = await supabase.from("clients").select("*").eq("id", id).single();
+        if (res.error) {
+          setError('Cliente não encontrado');
+          setLoading(false);
+          return;
+        }
+        data = res.data;
       }
-      setServicesList(list);
 
-      const cs = await supabase.from("client_services").select("service_id").eq("client_id", id);
-      setSelectedServices((cs.data ?? []).map((x: any) => x.service_id));
+      // Check for next contract number if new or creating
+      if (isNew) {
+        const top = await supabase.from('clients').select('client_contract').order('client_contract', { ascending: false }).limit(1);
+        const max = Number((top.data?.[0] as any)?.client_contract || 0);
+        data.client_contract = String((Number.isFinite(max) ? max : 0) + 1);
+      }
 
-      const ec = await supabase.from("client_contacts").select("name,phone").eq("client_id", id).order("created_at", { ascending: true });
-      setContacts((ec.data ?? []).map((c: any) => ({ name: c.name || "", phone: c.phone || "" })));
+      setForm(data);
+
+      const s = await supabase.from("services").select("id,name,slug").order("name");
+      setServicesList(s.data ?? []);
+
+      // If existing client, load related data
+      if (!isNew) {
+        const cservices = await supabase.from("client_services").select("service_id").eq("client_id", id);
+        setSelectedServices((cservices.data ?? []).map((x: any) => x.service_id));
+
+        const creps = await supabase.from("client_contacts").select("id, name, phone").eq("client_id", id);
+        setContacts(creps.data ?? []);
+
+        const cr = await supabase.from("client_representatives").select("representative_id").eq("client_id", id);
+        setSelectedReps((cr.data ?? []).map((x: any) => x.representative_id));
+
+        let sis = await supabase.from("sistemas").select("id,name,slug").order("name");
+        setSistemasList(sis.data ?? []);
+
+        const csis = await supabase.from("client_sistemas").select("sistema_id").eq("client_id", id);
+        setSelectedSistemas((csis.data ?? []).map((x: any) => x.sistema_id));
+
+        // Load sub-data
+        loadProv74();
+        loadRelatorios();
+        loadPcn();
+      }
 
       const reps = await supabase.from("representatives").select("id, full_name, email, phone").order("full_name");
       setRepsList(reps.data ?? []);
 
-      const cr = await supabase.from("client_representatives").select("representative_id").eq("client_id", id);
-      setSelectedReps((cr.data ?? []).map((x: any) => x.representative_id));
-
-      let sis = await supabase.from("sistemas").select("id,name,slug").order("name");
-      setSistemasList(sis.data ?? []);
-
-      const csis = await supabase.from("client_sistemas").select("sistema_id").eq("client_id", id);
-      setSelectedSistemas((csis.data ?? []).map((x: any) => x.sistema_id));
+      setLoading(false);
     }
     load();
-  }, [id, supabase]);
+  }, [id, supabase, isNew]);
 
   useEffect(() => {
     const names = selectedReps
@@ -227,10 +288,231 @@ export default function EditClientPage() {
 
   // eslint-disable-next-line react-hooks/exhaustive-deps
   // eslint-disable-next-line react-hooks/exhaustive-deps
+  /* Checklist Prov 74 State */
+  const [showProv74Form, setShowProv74Form] = useState(false);
+  const [editingProv74Id, setEditingProv74Id] = useState<string | null>(null);
+  const [prov74History, setProv74History] = useState<any[]>([]);
+  const [prov74Form, setProv74Form] = useState({
+    situacao: 'Realizado',
+    data_hora: '',
+    classes: [] as string[],
+    itens: [] as string[],
+    imagem_url: '',
+    observacao: ''
+  });
+
+  const prov74Items = [
+    "checkmk_inicial", "energia_estavel", "cpd", "switchH", "nobreak", "antivirus", "storage",
+    "checkmk", "link_internet", "impressora", "firewall", "backup_nuvem", "servidor_replicacao", "licencas_originais"
+  ];
+
+  async function loadProv74() {
+    const { data } = await supabase.from('prov74_checklist').select('*').eq('client_id', id).order('created_at', { ascending: false });
+    if (data) setProv74History(data);
+  }
+
+  /* Relatorios State */
+  const [relatoriosForm, setRelatoriosForm] = useState({
+    type: 'Relatório de Não Conformidade',
+    report_date: '',
+    version: '',
+    file_url: ''
+  });
+  const [showRelatoriosForm, setShowRelatoriosForm] = useState(false);
+  const [relatoriosHistory, setRelatoriosHistory] = useState<any[]>([]);
+  const [relatoriosLoading, setRelatoriosLoading] = useState(false);
+
+  async function loadRelatorios() {
+    const { data } = await supabase.from('client_reports').select('*').eq('client_id', id).order('created_at', { ascending: false });
+    if (data) setRelatoriosHistory(data);
+  }
+
+  async function onRelatoriosSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    setRelatoriosLoading(true);
+    const { data: userData } = await supabase.auth.getUser();
+    if (!userData.user) return;
+
+    const payload = {
+      client_id: id,
+      user_id: userData.user.id,
+      ...relatoriosForm,
+      report_date: relatoriosForm.report_date || new Date().toISOString().split('T')[0]
+    };
+
+    const { error } = await supabase.from('client_reports').insert(payload);
+
+    if (error) {
+      alert('Erro ao salvar relatório: ' + error.message);
+    } else {
+      setRelatoriosForm({ type: 'Relatório de Não Conformidade', report_date: '', version: '', file_url: '' });
+      setShowRelatoriosForm(false);
+      await loadRelatorios();
+    }
+    setRelatoriosLoading(false);
+  }
+
+  /* Dados Adicionais State */
+  const [dadosAdicionaisForm, setDadosAdicionaisForm] = useState({
+    type: 'Roteador',
+    quantity: 1,
+    brand_model: '',
+    has_external_battery: false,
+    has_generator: false,
+    observation: '',
+    image_url: ''
+  });
+  const [showDadosAdicionaisForm, setShowDadosAdicionaisForm] = useState(false);
+  const [dadosAdicionaisHistory, setDadosAdicionaisHistory] = useState<any[]>([]);
+  const [dadosAdicionaisLoading, setDadosAdicionaisLoading] = useState(false);
+
+  async function loadDadosAdicionais() {
+    const { data } = await supabase.from('client_additional_data').select('*').eq('client_id', id).order('created_at', { ascending: false });
+    if (data) setDadosAdicionaisHistory(data);
+  }
+
+  async function onDadosAdicionaisSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    setDadosAdicionaisLoading(true);
+    const { data: userData } = await supabase.auth.getUser();
+    if (!userData.user) return;
+
+    // Convert undefined/empty fields to appropriate types
+    const payload = {
+      client_id: id,
+      user_id: userData.user.id,
+      type: dadosAdicionaisForm.type,
+      quantity: Number(dadosAdicionaisForm.quantity),
+      brand_model: dadosAdicionaisForm.brand_model,
+      has_external_battery: dadosAdicionaisForm.has_external_battery,
+      has_generator: dadosAdicionaisForm.has_generator,
+      observation: dadosAdicionaisForm.observation,
+      image_url: dadosAdicionaisForm.image_url
+    };
+
+    const { error } = await supabase.from('client_additional_data').insert(payload);
+    if (error) {
+      alert('Erro ao salvar dados adicionais: ' + error.message);
+    } else {
+      setDadosAdicionaisForm({
+        type: 'Roteador',
+        quantity: 1,
+        brand_model: '',
+        has_external_battery: false,
+        has_generator: false,
+        observation: '',
+        image_url: ''
+      });
+      setShowDadosAdicionaisForm(false);
+      await loadDadosAdicionais();
+    }
+    setDadosAdicionaisLoading(false);
+  }
+  const [pcnForm, setPcnForm] = useState({
+    pcn: false,
+    politica_backup: false,
+    politica_ti: false,
+    encaminhado: false,
+    link: ''
+  });
+  const [showPcnForm, setShowPcnForm] = useState(false);
+  const [pcnHistory, setPcnHistory] = useState<any[]>([]);
+  const [pcnLoading, setPcnLoading] = useState(false);
+
+  async function loadPcn() {
+    const { data } = await supabase.from('client_pcn').select('*').eq('client_id', id).order('created_at', { ascending: false });
+    if (data) setPcnHistory(data);
+
+    // Load Additional Data
+    loadDadosAdicionais();
+  }
+
+  async function onPcnSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    setPcnLoading(true);
+    const { data: userData } = await supabase.auth.getUser();
+    if (!userData.user) return;
+
+    const payload = {
+      client_id: id,
+      user_id: userData.user.id,
+      ...pcnForm
+    };
+
+    const { error } = await supabase.from('client_pcn').insert(payload);
+    if (error) {
+      alert('Erro ao salvar PCN: ' + error.message);
+    } else {
+      setPcnForm({ pcn: false, politica_backup: false, politica_ti: false, encaminhado: false, link: '' });
+      setShowPcnForm(false);
+      await loadPcn();
+    }
+    setPcnLoading(false);
+  }
+
+
+
+  async function onProv74Submit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!prov74Form.data_hora) { alert('Informe a Data e Hora'); return; }
+
+    const { data: userData } = await supabase.auth.getUser();
+    if (!userData.user) return;
+
+    const payload = {
+      client_id: id,
+      user_id: userData.user.id,
+      situacao: prov74Form.situacao,
+      data_hora: prov74Form.data_hora,
+      classes: prov74Form.classes,
+      itens: prov74Form.itens,
+      imagem_url: prov74Form.imagem_url,
+      observacao: prov74Form.observacao
+    };
+
+    let error;
+    if (editingProv74Id) {
+      const { error: err } = await supabase
+        .from('prov74_checklist')
+        .update(payload)
+        .eq('id', editingProv74Id);
+      error = err;
+    } else {
+      const { error: err, data: newLine } = await supabase
+        .from('prov74_checklist')
+        .insert(payload)
+        .select()
+        .single();
+      if (newLine) {
+        setProv74History(prev => [newLine, ...prev]);
+      }
+      error = err;
+    }
+
+    if (error) {
+      alert('Erro ao salvar');
+      console.error(error);
+    } else {
+      setShowProv74Form(false);
+      setEditingProv74Id(null);
+      setProv74Form({
+        situacao: 'Realizado',
+        data_hora: '',
+        classes: [],
+        itens: [],
+        imagem_url: '',
+        observacao: ''
+      });
+      if (editingProv74Id) loadProv74(); // Reload to reflect updates
+      else alert('Checklist salvo com sucesso!');
+    }
+  }
+
   useEffect(() => {
     if (tab === 'inventario') { void loadInvHist(); }
     else if (tab === 'acesso') { void loadAcessos(); }
     else if (tab === 'servidores') { void loadServers(); void loadVMs(); }
+    else if (tab === 'prov74') { void loadProv74(); }
   }, [tab, id]);
 
   function buildAddress(f: any) {
@@ -345,37 +627,72 @@ export default function EditClientPage() {
     payload.city = titleCase(String(payload.city || ""));
     payload.services = selectedServices.map((sid) => servicesList.find(s => s.id === sid)?.name).filter(Boolean).join(", ");
 
-    let { error } = await supabase.from("clients").update(payload).eq("id", id);
-    setLoading(false);
+    let newId = id;
+    let resError;
 
-    if (error) {
-      setError(error.message);
+    if (isNew) {
+      const { data, error } = await supabase.from("clients").insert(payload).select("id").single();
+      if (data) newId = data.id;
+      resError = error;
+    } else {
+      const { error } = await supabase.from("clients").update(payload).eq("id", id);
+      resError = error;
+    }
+
+    if (resError) {
+      setError((resError as any).message);
+      setLoading(false);
       return;
     }
 
-    // Update relations
-    await supabase.from("client_contacts").delete().eq("client_id", id);
+    // Relation Handling
     const { data: userData } = await supabase.auth.getUser();
     const user_id = userData.user?.id;
-    const toInsert = contacts.filter((c) => String(c.name).trim()).map((c) => ({ client_id: id, user_id, name: c.name.trim(), phone: c.phone.trim() }));
+
+    // Contacts
+    if (!isNew) {
+      await supabase.from("client_contacts").delete().eq("client_id", id);
+    }
+    const toInsert = contacts.filter((c) => String(c.name).trim()).map((c) => ({ client_id: newId, user_id, name: c.name.trim(), phone: c.phone.trim() }));
     if (toInsert.length) await supabase.from("client_contacts").insert(toInsert);
 
     // Services
-    const svcBefore = await supabase.from("client_services").select("service_id").eq("client_id", id);
-    const existingSvc = (svcBefore.data ?? []).map((x: any) => x.service_id);
-    const addSvc = selectedServices.filter((sid) => !existingSvc.includes(sid));
-    const removeSvc = existingSvc.filter((sid) => !selectedServices.includes(sid));
-    if (addSvc.length) await supabase.from("client_services").insert(addSvc.map((sid) => ({ client_id: id, service_id: sid, user_id })));
-    if (removeSvc.length) await supabase.from("client_services").delete().in("service_id", removeSvc).eq("client_id", id);
-
-    // Reps
-    await supabase.from("client_representatives").delete().eq("client_id", id);
-    if (selectedReps.length) {
-      await supabase.from("client_representatives").insert(selectedReps.map((rid) => ({ client_id: id, representative_id: rid, user_id })));
+    if (isNew) {
+      if (selectedServices.length) await supabase.from("client_services").insert(selectedServices.map((sid) => ({ client_id: newId, service_id: sid, user_id })));
+    } else {
+      const svcBefore = await supabase.from("client_services").select("service_id").eq("client_id", id);
+      const existingSvc = (svcBefore.data ?? []).map((x: any) => x.service_id);
+      const addSvc = selectedServices.filter((sid) => !existingSvc.includes(sid));
+      const removeSvc = existingSvc.filter((sid) => !selectedServices.includes(sid));
+      if (addSvc.length) await supabase.from("client_services").insert(addSvc.map((sid) => ({ client_id: id, service_id: sid, user_id })));
+      if (removeSvc.length) await supabase.from("client_services").delete().in("service_id", removeSvc).eq("client_id", id);
     }
 
-    router.replace("/clients");
-    router.refresh();
+    // Reps
+    if (isNew) {
+      if (selectedReps.length) await supabase.from("client_representatives").insert(selectedReps.map((rid) => ({ client_id: newId, representative_id: rid, user_id })));
+    } else {
+      await supabase.from("client_representatives").delete().eq("client_id", id);
+      if (selectedReps.length) {
+        await supabase.from("client_representatives").insert(selectedReps.map((rid) => ({ client_id: id, representative_id: rid, user_id })));
+      }
+    }
+
+    // Sistemas (assuming previously implemented in shared logic, but if not present in original block, I should check if I need to add it. Original block didn't show 'sistemas' logic visibly, but I saw it in other viewed sections. I'll omit it if it wasn't in the replaced block to avoid duplication, BUT I should double check if I'm missing it.)
+    // Wait, the original block ended at 661. 'Sistemas' logic was NOT in the replaced block (it might be handled elsewhere or I missed it).
+    // Looking at previous `view_file` (1100-1400), I saw `client_sistemas` logic in the *render* (upsert on change).
+    // So 'Sistemas' might not be saved in `onSubmit`.
+    // I will stick to what was there: Contacts, Services, Reps.
+
+    setLoading(false);
+
+    if (isNew) {
+      alert('Cliente criado com sucesso!');
+      router.push(`/clients/${newId}`);
+    } else {
+      alert('Dados salvos com sucesso!');
+      router.refresh();
+    }
   }
 
   async function onDelete() {
@@ -615,7 +932,7 @@ export default function EditClientPage() {
     setVmLoading(true);
 
     // NOTE: assuming server_vms table exists as per migration
-    const payload = {
+    const payload: any = {
       server_id: selectedServerForVM,
       vm_name: vmForm.vm_name,
       ip: vmForm.ip,
@@ -814,27 +1131,36 @@ export default function EditClientPage() {
     prov74: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><polyline points="14 2 14 8 20 8" /><line x1="16" y1="13" x2="8" y2="13" /><line x1="16" y1="17" x2="8" y2="17" /><polyline points="10 9 9 9 8 9" /></svg>,
     relatorios: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><polyline points="14 2 14 8 20 8" /><line x1="12" y1="18" x2="12" y2="12" /><line x1="9" y1="15" x2="15" y2="15" /></svg>,
     pcn: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" /></svg>,
-    dadosadicionais: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" /></svg>
+    dadosadicionais: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" /></svg>,
+    sistemas: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="4" y="4" width="16" height="16" rx="2" ry="2" /><rect x="9" y="9" width="6" height="6" /><line x1="9" y1="1" x2="9" y2="4" /><line x1="15" y1="1" x2="15" y2="4" /><line x1="9" y1="20" x2="9" y2="23" /><line x1="15" y1="20" x2="15" y2="23" /><line x1="20" y1="9" x2="23" y2="9" /><line x1="20" y1="14" x2="23" y2="14" /><line x1="1" y1="9" x2="4" y2="9" /><line x1="1" y1="14" x2="4" y2="14" /></svg>
   };
 
   return (
     <div className="w-full p-2 md:p-4 space-y-4">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-gray-900">Editar Cliente</h1>
+        <h1 className="text-2xl font-bold text-gray-900">{isNew ? 'Novo Cliente' : 'Editar Cliente'}</h1>
         <div className="flex gap-2">
-          <button type="submit" form="client-form" disabled={loading} className={`${btnPrimary} w-32`}>{loading ? "Salvando..." : "Salvar"}</button>
+          <button type="submit" form="client-form" disabled={loading} className={`${btnPrimary} w-32`}>{loading ? "Salvando..." : (isNew ? "Criar" : "Salvar")}</button>
           <button type="button" onClick={() => router.replace("/clients")} className={btnSecondary}>Cancelar</button>
-          <button onClick={onDelete} type="button" className={btnDestructive}>Excluir Cliente</button>
+          {!isNew && <button onClick={onDelete} type="button" className={btnDestructive}>Excluir Cliente</button>}
         </div>
       </div>
 
       <div className="flex flex-wrap gap-2 pb-2">
-        {(['dados', 'acesso', 'inventario', 'servidores', 'prov74', 'relatorios', 'pcn', 'dadosadicionais'] as const).map((t) => (
-          <button key={t} onClick={() => setTab(t)} className={navTabClass(t)}>
-            {tabIcons[t]}
-            {t === 'dados' ? 'Dados do Cliente' : t === 'inventario' ? 'Inventário' : t === 'acesso' ? 'Dados de Acesso' : t === 'servidores' ? 'Servidores' : t === 'prov74' ? 'Prov. 74' : t === 'relatorios' ? 'Relatórios' : t === 'pcn' ? 'PCN' : 'Dados Adicionais'}
-          </button>
-        ))}
+        <button onClick={() => setTab('dados')} className={navTabClass('dados')}>
+          {tabIcons['dados']}
+          <span className="hidden sm:inline">Dados do Cliente</span>
+        </button>
+        {isNew ? (
+          <span className="px-4 py-2 text-sm text-gray-400 italic flex items-center">Salve o cliente para habilitar outras abas</span>
+        ) : (
+          (['acesso', 'inventario', 'servidores', 'sistemas', 'prov74', 'pcn', 'relatorios', 'dadosadicionais'] as const).map((t) => (
+            <button key={t} onClick={() => setTab(t)} className={navTabClass(t)}>
+              {tabIcons[t]}
+              {t === 'dados' ? 'Dados do Cliente' : t === 'inventario' ? 'Inventário' : t === 'acesso' ? 'Dados de Acesso' : t === 'servidores' ? 'Servidores' : t === 'sistemas' ? 'Sistemas' : t === 'prov74' ? 'CheckList Prov. 74' : t === 'relatorios' ? 'Relatórios' : t === 'pcn' ? 'PCN' : 'Dados Adicionais'}
+            </button>
+          ))
+        )}
       </div>
 
       <form id="client-form" onSubmit={onSubmit} className={`space-y-6 animate-in fade-in duration-300 ${tab === 'dados' ? '' : 'hidden'}`}>
@@ -1686,10 +2012,501 @@ export default function EditClientPage() {
       }
 
       {/* Placeholders for other tabs */}
-      {tab === 'prov74' && <div className="p-8 text-center text-gray-400 border rounded-lg border-dashed">Módulo Provimento 74 em manutenção.</div>}
-      {tab === 'relatorios' && <div className="p-8 text-center text-gray-400 border rounded-lg border-dashed">Módulo de Relatórios em manutenção.</div>}
-      {tab === 'pcn' && <div className="p-8 text-center text-gray-400 border rounded-lg border-dashed">Módulo PCN em desenvolvimento.</div>}
-      {tab === 'dadosadicionais' && <div className="p-8 text-center text-gray-400 border rounded-lg border-dashed">Dados Adicionais vazio.</div>}
+      {tab === 'prov74' && (
+        <div className="space-y-8 animate-in fade-in">
+          {/* Header / Actions */}
+          <div className="flex justify-between items-center">
+            <h3 className="text-lg font-medium text-gray-900">Histórico de Verificações</h3>
+            {!showProv74Form && prov74History.length === 0 && (
+              <button
+                onClick={() => {
+                  setEditingProv74Id(null);
+                  setProv74Form({
+                    situacao: 'Realizado',
+                    data_hora: '',
+                    classes: [],
+                    itens: [],
+                    imagem_url: '',
+                    observacao: ''
+                  });
+                  setShowProv74Form(true);
+                }}
+                className="bg-brand-blue-600 text-white px-4 py-2 rounded shadow hover:bg-brand-blue-700 font-medium text-sm flex items-center gap-2"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                Nova Verificação
+              </button>
+            )}
+          </div>
+
+          {/* Form */}
+          {showProv74Form && (
+            <div className="rounded-lg border bg-white p-6 shadow-sm border-l-4 border-l-brand-blue-500 animate-in slide-in-from-top-2">
+              <div className="flex justify-between items-center mb-4 border-b pb-2">
+                <h4 className="font-semibold text-gray-800">Nova Verificação</h4>
+                <button onClick={() => setShowProv74Form(false)} className="text-gray-400 hover:text-gray-600">✕</button>
+              </div>
+              <form onSubmit={onProv74Submit}>
+                <div className="flex justify-between items-center mb-6 border-b pb-4">
+                  <h4 className="font-semibold text-gray-800 text-lg">{editingProv74Id ? 'Editar Verificação' : 'Nova Verificação'}</h4>
+                  <div className="flex gap-2">
+                    <button type="button" onClick={() => { setShowProv74Form(false); setEditingProv74Id(null); }} className="px-3 py-1.5 text-sm text-gray-600 hover:text-gray-800 border rounded hover:bg-gray-50 transition-colors">Cancelar</button>
+                    <button type="submit" className="bg-brand-green-600 text-white px-4 py-1.5 rounded shadow hover:bg-brand-green-700 font-medium text-sm flex items-center gap-2 transition-colors">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg>
+                      Salvar
+                    </button>
+                  </div>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4 pt-4 border-t">
+                  <FloatingLabelSelect label="Situação" value={prov74Form.situacao} onChange={(e) => setProv74Form({ ...prov74Form, situacao: e.target.value })}>
+                    <option value="Realizado">Realizado</option>
+                    <option value="Pendente">Pendente</option>
+                    <option value="Não Realizado">Não Realizado</option>
+                  </FloatingLabelSelect>
+                  <FloatingLabelInput label="Data e Hora" type="datetime-local" value={prov74Form.data_hora} onChange={(e) => setProv74Form({ ...prov74Form, data_hora: e.target.value })} />
+                </div>
+
+                <div className="mb-4">
+                  <FloatingLabelTextarea label="Observação" value={prov74Form.observacao} onChange={(e) => setProv74Form({ ...prov74Form, observacao: e.target.value })} />
+                </div>
+
+                <div className="mb-4">
+                  <span className="block text-sm font-medium text-gray-700 mb-2">Classe</span>
+                  <div className="flex flex-col gap-2">
+                    {[
+                      { val: 'Classe 1', label: 'Classe 1 (até R$ 100 mil por semestre)' },
+                      { val: 'Classe 2', label: 'Classe 2 (entre R$ 100 mil e R$ 500 mil por semestre)' },
+                      { val: 'Classe 3', label: 'Classe 3 (acima de R$ 500 mil por semestre)' }
+                    ].map(opt => (
+                      <label key={opt.val} className="flex items-center gap-2 cursor-pointer">
+                        <input type="checkbox" checked={(prov74Form.classes || []).includes(opt.val)} onChange={(e) => {
+                          // Single selection logic: if checked, set only this class; if unchecked, clear classes
+                          const newClasses = e.target.checked ? [opt.val] : [];
+                          setProv74Form({ ...prov74Form, classes: newClasses });
+                        }} className="w-4 h-4 rounded border-gray-300 text-brand-blue-600 focus:ring-brand-blue-600" />
+                        <span className="text-sm text-gray-700">{opt.label}</span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="mb-4">
+                  <span className="block text-sm font-medium text-gray-700 mb-2">Itens Verificados</span>
+                  <div className="grid grid-cols-1 md:grid-cols-4 gap-4 bg-gray-50 p-3 rounded border">
+                    {PROV74_COLUMNS.map((col, i) => (
+                      <div key={i} className="flex flex-col gap-2">
+                        {col.map(opt => (
+                          <label key={opt} className="flex items-center gap-2 cursor-pointer">
+                            <input type="checkbox" checked={(prov74Form.itens || []).includes(opt)} onChange={(e) => {
+                              const newItens = e.target.checked
+                                ? [...(prov74Form.itens || []), opt]
+                                : (prov74Form.itens || []).filter((i: string) => i !== opt);
+                              setProv74Form({ ...prov74Form, itens: newItens });
+                            }} className="w-4 h-4 rounded border-gray-300 text-brand-blue-600 focus:ring-brand-blue-600" />
+                            <span className="text-sm text-gray-700 leading-tight">{formatProv74Label(opt)}</span>
+                          </label>
+                        ))}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="mb-4">
+                  <span className="block text-sm font-medium text-gray-700 mb-1">Imagem / Comprovante</span>
+                  <input type="file" className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100" onChange={async (e) => {
+                    const file = e.target.files?.[0]; if (!file) return;
+                    const { data: userData } = await supabase.auth.getUser();
+                    const path = `${userData.user?.id || 'anon'}/prov74/${Date.now()}-${file.name}`;
+                    const { error } = await supabase.storage.from('files').upload(path, file);
+                    if (!error) {
+                      const { data } = supabase.storage.from('files').getPublicUrl(path);
+                      setProv74Form({ ...prov74Form, imagem_url: data.publicUrl });
+                    }
+                  }} />
+                  {prov74Form.imagem_url && (
+                    <div className="mt-2">
+                      <a href={prov74Form.imagem_url} target="_blank" rel="noreferrer" className="text-blue-600 hover:underline text-xs flex items-center gap-1">
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" /></svg>
+                        Ver Imagem Anexada
+                      </a>
+                    </div>
+                  )}
+                </div>
+              </form>
+            </div>
+          )}
+
+          <div className="rounded-lg border bg-white overflow-hidden shadow-sm">
+            <table className="min-w-full divide-y divide-gray-200">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th className="px-6 py-3 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Situação</th>
+                  <th className="px-6 py-3 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">DataHora</th>
+                  <th className="px-6 py-3 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Itens Verificados</th>
+                  <th className="px-6 py-3 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Observação</th>
+                  <th className="px-6 py-3 text-right text-xs font-bold text-gray-700 uppercase tracking-wider">Ações</th>
+                </tr>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {prov74History.length === 0 ? (
+                  <tr><td colSpan={5} className="px-6 py-4 text-sm text-gray-500">Nenhum item</td></tr>
+                ) : (
+                  prov74History.map(h => (
+                    <tr key={h.id}>
+                      <td className="px-6 py-4 text-sm text-gray-900">
+                        <div>{h.situacao}</div>
+                        {h.classes && h.classes.length > 0 && (
+                          <div className="mt-1 flex gap-2">
+                            {h.classes.map((cls: string) => (
+                              <span key={cls} className="px-2 py-0.5 rounded text-[10px] uppercase font-bold bg-blue-100 text-blue-700 border border-blue-200">
+                                {cls}
+                              </span>
+                            ))}
+                          </div>
+                        )}
+                      </td>
+                      <td className="px-6 py-4 text-sm text-gray-500">{new Date(h.data_hora).toLocaleString('pt-BR')}</td>
+                      <td className="px-6 py-4 text-sm text-gray-500">
+
+                        <div className="flex gap-4">
+                          {PROV74_COLUMNS.map((col, i) => (
+                            <div key={i} className="flex flex-col gap-1 min-w-[120px]">
+                              {col.map(opt => {
+                                const isChecked = (h.itens || []).includes(opt);
+                                return (
+                                  <div key={opt} className="flex items-center gap-1.5">
+                                    <div className={`w-3.5 h-3.5 rounded border flex items-center justify-center ${isChecked ? 'bg-brand-green-100 border-brand-green-500' : 'bg-gray-50 border-gray-300'}`}>
+                                      {isChecked && <svg className="w-3 h-3 text-brand-green-700" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7" /></svg>}
+                                    </div>
+                                    <span className={`text-[11px] leading-tight ${isChecked ? 'text-gray-900 font-medium' : 'text-gray-400'}`}>{formatProv74Label(opt)}</span>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          ))}
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 text-sm text-gray-500 max-w-[200px]">
+                        {h.observacao ? h.observacao : <span className="text-gray-300 italic">Sem observação</span>}
+                        {h.imagem_url && (
+                          <a href={h.imagem_url} target="_blank" rel="noreferrer" className="block text-blue-600 text-xs mt-1 hover:underline">Ver Imagem</a>
+                        )}
+                      </td>
+                      <td className="px-6 py-4 text-right text-sm font-medium">
+                        <button
+                          onClick={() => {
+                            setEditingProv74Id(h.id);
+                            setProv74Form({
+                              situacao: h.situacao,
+                              data_hora: h.data_hora.slice(0, 16), // Format for datetime-local
+                              classes: h.classes || [],
+                              itens: h.itens || [],
+                              imagem_url: h.imagem_url,
+                              observacao: h.observacao || ''
+                            });
+                            setShowProv74Form(true);
+                          }}
+                          className="text-indigo-600 hover:text-indigo-900 bg-indigo-50 hover:bg-indigo-100 px-3 py-1 rounded transition-colors text-xs font-bold"
+                        >
+                          Editar
+                        </button>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div >
+      )
+      }
+      {tab === 'relatorios' && (
+        <div className="space-y-6 animate-in fade-in">
+          {/* Header */}
+          <div className="flex justify-between items-center">
+            <h3 className="text-lg font-medium text-gray-900">Histórico de Relatórios</h3>
+            {!showRelatoriosForm && (
+              <button
+                onClick={() => {
+                  setRelatoriosForm(prev => ({ ...prev, report_date: new Date().toISOString().split('T')[0] }));
+                  setShowRelatoriosForm(true);
+                }}
+                className="bg-brand-blue-600 text-white px-4 py-2 rounded shadow hover:bg-brand-blue-700 font-medium text-sm flex items-center gap-2"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                Novo Relatório
+              </button>
+            )}
+          </div>
+
+          {showRelatoriosForm && (
+            <div className="rounded-lg border bg-white p-6 shadow-sm border-l-4 border-l-brand-blue-500 animate-in slide-in-from-top-2">
+              <div className="flex justify-between items-center mb-4 border-b pb-2">
+                <h4 className="font-semibold text-gray-800">Novo Relatório</h4>
+                <button onClick={() => setShowRelatoriosForm(false)} className="text-gray-400 hover:text-gray-600">✕</button>
+              </div>
+              <form onSubmit={onRelatoriosSubmit}>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                  <FloatingLabelSelect label="Tipo" value={relatoriosForm.type} onChange={(e) => setRelatoriosForm({ ...relatoriosForm, type: e.target.value })}>
+                    <option value="Relatório de Não Conformidade">Relatório de Não Conformidade</option>
+                    <option value="Relatório Mensal">Relatório Mensal</option>
+                    <option value="Relatório Técnico">Relatório Técnico</option>
+                    <option value="Relatório de Lista de Equipamento">Relatório de Lista de Equipamento</option>
+                  </FloatingLabelSelect>
+                  <FloatingLabelInput label="Data" type="date" value={relatoriosForm.report_date} onChange={(e) => setRelatoriosForm({ ...relatoriosForm, report_date: e.target.value })} />
+                  <FloatingLabelInput label="Versão" value={relatoriosForm.version} onChange={(e) => setRelatoriosForm({ ...relatoriosForm, version: e.target.value })} />
+
+                  <div className="flex flex-col gap-1">
+                    <span className="text-xs text-gray-500">Arquivo</span>
+                    <input type="file" className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-brand-green-50 file:text-brand-green-700 hover:file:bg-brand-green-100"
+                      onChange={async (e) => {
+                        const file = e.target.files?.[0]; if (!file) return;
+                        const { data: userData } = await supabase.auth.getUser();
+                        const path = `${userData.user?.id || 'anon'}/reports/${Date.now()}-${file.name}`;
+                        const { error, data } = await supabase.storage.from('files').upload(path, file);
+                        if (!error && data) {
+                          const { data: pub } = supabase.storage.from('files').getPublicUrl(path);
+                          setRelatoriosForm({ ...relatoriosForm, file_url: pub.publicUrl });
+                        }
+                      }}
+                    />
+                    {relatoriosForm.file_url && <span className="text-xs text-green-600">Arquivo anexado!</span>}
+                  </div>
+                </div>
+                <div className="flex justify-end gap-2">
+                  <button type="button" onClick={() => setShowRelatoriosForm(false)} className="px-3 py-1.5 text-sm text-gray-600 hover:text-gray-800 border rounded hover:bg-gray-50">Cancelar</button>
+                  <button type="submit" disabled={relatoriosLoading} className="bg-brand-green-600 text-white px-4 py-1.5 rounded shadow hover:bg-brand-green-700 font-medium text-sm">
+                    {relatoriosLoading ? 'Salvando...' : 'Salvar'}
+                  </button>
+                </div>
+              </form>
+            </div>
+          )}
+
+          <div className="rounded-lg border bg-white overflow-hidden shadow-sm">
+            <table className="min-w-full divide-y divide-gray-200">
+              <thead className="bg-green-50">
+                <tr>
+                  <th className="px-6 py-3 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Tipo</th>
+                  <th className="px-6 py-3 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Data</th>
+                  <th className="px-6 py-3 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Versão</th>
+                  <th className="px-6 py-3 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Arquivo</th>
+                </tr>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {relatoriosHistory.length === 0 ? (
+                  <tr><td colSpan={4} className="px-6 py-4 text-sm text-gray-500">Nenhum relatório</td></tr>
+                ) : (
+                  relatoriosHistory.map(h => (
+                    <tr key={h.id}>
+                      <td className="px-6 py-4 text-sm text-gray-900">{h.type}</td>
+                      <td className="px-6 py-4 text-sm text-gray-500">{h.report_date ? new Date(h.report_date).toLocaleDateString() : '-'}</td>
+                      <td className="px-6 py-4 text-sm text-gray-500">{h.version}</td>
+                      <td className="px-6 py-4 text-sm text-blue-600">
+                        {h.file_url ? (
+                          <a href={h.file_url} target="_blank" rel="noreferrer" className="hover:underline">Baixar/Ver</a>
+                        ) : '-'}
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+      {tab === 'pcn' && (
+        <div className="space-y-6 animate-in fade-in">
+          <div className="flex justify-between items-center">
+            <h3 className="text-lg font-medium text-gray-900">Histórico de PCN</h3>
+            {!showPcnForm && (
+              <button
+                onClick={() => setShowPcnForm(true)}
+                className="bg-brand-blue-600 text-white px-4 py-2 rounded shadow hover:bg-brand-blue-700 font-medium text-sm flex items-center gap-2"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                Novo PCN
+              </button>
+            )}
+          </div>
+
+          {showPcnForm && (
+            <div className="rounded-lg border bg-white p-6 shadow-sm border-l-4 border-l-brand-blue-500 animate-in slide-in-from-top-2">
+              <div className="flex justify-between items-center mb-4 border-b pb-2">
+                <h4 className="font-semibold text-gray-800">Novo PCN</h4>
+                <button onClick={() => setShowPcnForm(false)} className="text-gray-400 hover:text-gray-600">✕</button>
+              </div>
+              <form onSubmit={onPcnSubmit}>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                  <div className="flex flex-col gap-2">
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <input type="checkbox" checked={pcnForm.pcn} onChange={(e) => setPcnForm({ ...pcnForm, pcn: e.target.checked })} className="w-4 h-4 rounded border-gray-300 text-brand-blue-600 focus:ring-brand-blue-600" />
+                      <span className="text-sm text-gray-700">pcn</span>
+                    </label>
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <input type="checkbox" checked={pcnForm.politica_ti} onChange={(e) => setPcnForm({ ...pcnForm, politica_ti: e.target.checked })} className="w-4 h-4 rounded border-gray-300 text-brand-blue-600 focus:ring-brand-blue-600" />
+                      <span className="text-sm text-gray-700">politica_ti</span>
+                    </label>
+                  </div>
+                  <div className="flex flex-col gap-2">
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <input type="checkbox" checked={pcnForm.politica_backup} onChange={(e) => setPcnForm({ ...pcnForm, politica_backup: e.target.checked })} className="w-4 h-4 rounded border-gray-300 text-brand-blue-600 focus:ring-brand-blue-600" />
+                      <span className="text-sm text-gray-700">politica_backup</span>
+                    </label>
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <input type="checkbox" checked={pcnForm.encaminhado} onChange={(e) => setPcnForm({ ...pcnForm, encaminhado: e.target.checked })} className="w-4 h-4 rounded border-gray-300 text-brand-blue-600 focus:ring-brand-blue-600" />
+                      <span className="text-sm text-gray-700">encaminhado</span>
+                    </label>
+                  </div>
+
+                  <div className="md:col-span-2">
+                    <FloatingLabelInput label="Link" value={pcnForm.link} onChange={(e) => setPcnForm({ ...pcnForm, link: e.target.value })} />
+                  </div>
+                </div>
+                <div className="flex justify-end gap-2">
+                  <button type="button" onClick={() => setShowPcnForm(false)} className="px-3 py-1.5 text-sm text-gray-600 hover:text-gray-800 border rounded hover:bg-gray-50">Cancelar</button>
+                  <button type="submit" disabled={pcnLoading} className="bg-brand-green-600 text-white px-4 py-1.5 rounded shadow hover:bg-brand-green-700 font-medium text-sm">
+                    {pcnLoading ? 'Salvando...' : 'Salvar'}
+                  </button>
+                </div>
+              </form>
+            </div>
+          )}
+
+          <div className="rounded-lg border bg-white overflow-hidden shadow-sm">
+            <table className="min-w-full divide-y divide-gray-200">
+              <thead className="bg-blue-50">
+                <tr>
+                  <th className="px-6 py-3 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">PCN</th>
+                  <th className="px-6 py-3 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">PoliticaBackup</th>
+                  <th className="px-6 py-3 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">PoliticaTI</th>
+                  <th className="px-6 py-3 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Encaminhado</th>
+                  <th className="px-6 py-3 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Link</th>
+                </tr>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {pcnHistory.length === 0 ? (
+                  <tr><td colSpan={5} className="px-6 py-4 text-sm text-gray-500">Nenhum registro</td></tr>
+                ) : (
+                  pcnHistory.map(h => (
+                    <tr key={h.id}>
+                      <td className="px-6 py-4 text-sm text-gray-900">{h.pcn ? 'Sim' : 'Não'}</td>
+                      <td className="px-6 py-4 text-sm text-gray-900">{h.politica_backup ? 'Sim' : 'Não'}</td>
+                      <td className="px-6 py-4 text-sm text-gray-900">{h.politica_ti ? 'Sim' : 'Não'}</td>
+                      <td className="px-6 py-4 text-sm text-gray-900">{h.encaminhado ? 'Sim' : 'Não'}</td>
+                      <td className="px-6 py-4 text-sm text-blue-600 max-w-[200px] truncate" title={h.link}>
+                        {h.link ? (
+                          <a href={h.link} target="_blank" rel="noreferrer" className="hover:underline">{h.link}</a>
+                        ) : '-'}
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+      {tab === 'dadosadicionais' && (
+        <div className="space-y-6 animate-in fade-in">
+          <div className="flex justify-between items-center">
+            <h3 className="text-lg font-medium text-gray-900">Observações / Dados Adicionais</h3>
+            {!showDadosAdicionaisForm && (
+              <button
+                onClick={() => setShowDadosAdicionaisForm(true)}
+                className="bg-brand-blue-600 text-white px-4 py-2 rounded shadow hover:bg-brand-blue-700 font-medium text-sm flex items-center gap-2"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" /><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" /></svg>
+                Editar Dados
+              </button>
+            )}
+          </div>
+
+          {showDadosAdicionaisForm && (
+            <div className="rounded-lg border bg-white p-6 shadow-sm border-l-4 border-l-brand-blue-500 animate-in slide-in-from-top-2">
+              <div className="flex justify-between items-center mb-4 border-b pb-2">
+                <h4 className="font-semibold text-gray-800">Novo Item Adicional</h4>
+                <button onClick={() => setShowDadosAdicionaisForm(false)} className="text-gray-400 hover:text-gray-600">✕</button>
+              </div>
+              <form onSubmit={onDadosAdicionaisSubmit}>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                  <FloatingLabelSelect label="DadosAdicionais" value={dadosAdicionaisForm.type} onChange={(e) => setDadosAdicionaisForm({ ...dadosAdicionaisForm, type: e.target.value })}>
+                    {DADOS_ADICIONAIS_TYPES.map(opt => <option key={opt} value={opt}>{opt}</option>)}
+                  </FloatingLabelSelect>
+                  <FloatingLabelInput label="Qtd" type="number" value={String(dadosAdicionaisForm.quantity)} onChange={(e) => setDadosAdicionaisForm({ ...dadosAdicionaisForm, quantity: Number(e.target.value) })} />
+
+                  <div className="md:col-span-2">
+                    <FloatingLabelInput label="Marca/Modelo" value={dadosAdicionaisForm.brand_model} onChange={(e) => setDadosAdicionaisForm({ ...dadosAdicionaisForm, brand_model: e.target.value })} placeholder="NHS 3000va, SMS 1.5va, ..." />
+                  </div>
+
+                  {dadosAdicionaisForm.type === 'Nobreak' && (
+                    <>
+                      <div className="flex flex-col gap-2">
+                        <label className="flex items-center gap-2 cursor-pointer">
+                          <input type="checkbox" checked={dadosAdicionaisForm.has_external_battery} onChange={(e) => setDadosAdicionaisForm({ ...dadosAdicionaisForm, has_external_battery: e.target.checked })} className="w-4 h-4 rounded border-gray-300 text-brand-blue-600 focus:ring-brand-blue-600" />
+                          <span className="text-sm text-gray-700">Possui Bateria Externa</span>
+                        </label>
+                      </div>
+                      <div className="flex flex-col gap-2">
+                        <label className="flex items-center gap-2 cursor-pointer">
+                          <input type="checkbox" checked={dadosAdicionaisForm.has_generator} onChange={(e) => setDadosAdicionaisForm({ ...dadosAdicionaisForm, has_generator: e.target.checked })} className="w-4 h-4 rounded border-gray-300 text-brand-blue-600 focus:ring-brand-blue-600" />
+                          <span className="text-sm text-gray-700">Possui Gerador</span>
+                        </label>
+                      </div>
+                    </>
+                  )}
+
+                  <div className="md:col-span-2">
+                    <FloatingLabelInput label="Observacao" value={dadosAdicionaisForm.observation} onChange={(e) => setDadosAdicionaisForm({ ...dadosAdicionaisForm, observation: e.target.value })} />
+                  </div>
+                  <div className="md:col-span-2">
+                    <FloatingLabelInput label="Imagem" value={dadosAdicionaisForm.image_url} onChange={(e) => setDadosAdicionaisForm({ ...dadosAdicionaisForm, image_url: e.target.value })} />
+                  </div>
+                </div>
+                <div className="flex justify-end gap-2">
+                  <button type="button" onClick={() => setShowDadosAdicionaisForm(false)} className="px-3 py-1.5 text-sm text-gray-600 hover:text-gray-800 border rounded hover:bg-gray-50">Cancelar</button>
+                  <button type="submit" disabled={dadosAdicionaisLoading} className="bg-brand-green-600 text-white px-4 py-1.5 rounded shadow hover:bg-brand-green-700 font-medium text-sm">
+                    {dadosAdicionaisLoading ? 'Salvando...' : 'Salvar'}
+                  </button>
+                </div>
+              </form>
+            </div>
+          )}
+
+          <div className="rounded-lg border bg-white overflow-hidden shadow-sm">
+            <table className="min-w-full divide-y divide-gray-200">
+              <thead className="bg-green-50">
+                <tr>
+                  <th className="px-6 py-3 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Tipo</th>
+                  <th className="px-6 py-3 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Qtd</th>
+                  <th className="px-6 py-3 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Marca/Modelo</th>
+                  <th className="px-6 py-3 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Ações</th>
+                </tr>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {dadosAdicionaisHistory.length === 0 ? (
+                  <tr><td colSpan={4} className="px-6 py-4 text-sm text-gray-500">Nenhum registro</td></tr>
+                ) : (
+                  dadosAdicionaisHistory.map(h => (
+                    <tr key={h.id}>
+                      <td className="px-6 py-4 text-sm text-gray-900">{h.type}</td>
+                      <td className="px-6 py-4 text-sm text-gray-900">{h.quantity}</td>
+                      <td className="px-6 py-4 text-sm text-gray-900">{h.brand_model || '-'}</td>
+                      <td className="px-6 py-4 text-sm text-red-600 cursor-pointer hover:underline" onClick={async () => {
+                        if (!confirm('Excluir este item?')) return;
+                        await supabase.from('client_additional_data').delete().eq('id', h.id);
+                        loadDadosAdicionais();
+                      }}>
+                        Excluir
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
 
       <DescriptionModal content={viewingDescription || ""} onClose={() => setViewingDescription(null)} />
       {VMModal()}

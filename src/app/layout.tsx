@@ -86,7 +86,9 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
               <nav className="flex-1">
                 <SidebarMenu />
               </nav>
-
+              <div className="p-4 border-t border-black/10 dark:border-white/10 flex justify-center">
+                <SidebarCollapse />
+              </div>
             </aside>
           )}
           <div className="flex flex-col">
@@ -94,7 +96,6 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
               <header className="hidden md:block border-b border-black/10 dark:border-white/10 bg-[#f5f5f5] dark:bg-gray-800">
                 <div className="flex items-center justify-between px-4 py-3">
                   <div className="flex items-center">
-                    <SidebarCollapse />
                     <img src={logoHeaderSrc} alt="FourTek" className="h-8" />
                   </div>
                   <div className="flex items-center gap-3 text-gray-800 dark:text-gray-200">
@@ -107,7 +108,12 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
             )}
             {/* header móvel removido para usar o sidebar também em mobile */}
             <main className={hasSession ? "w-full px-4 py-3 flex-1 bg-white dark:bg-gray-900" : "w-full flex-1 dark:bg-gray-900"}>{children}</main>
-            {hasSession && <footer className="px-4 py-2 text-xs text-gray-600 dark:text-gray-400 text-center bg-[#f5f5f5] dark:bg-gray-800 border-t border-black/10 dark:border-white/10">@ 2025 Fourtek Soluções em TI • {version}</footer>}
+            {hasSession && (
+              <footer className="relative px-4 py-2 text-xs text-gray-600 dark:text-gray-400 bg-[#f5f5f5] dark:bg-gray-800 border-t border-black/10 dark:border-white/10 flex items-center justify-center">
+                <span>@2026 Fourtek Soluções em Ti</span>
+                <span className="absolute right-4">Versão {version.substring(1)}</span>
+              </footer>
+            )}
             {/* navegação móvel inferior removida */}
           </div>
         </div>
