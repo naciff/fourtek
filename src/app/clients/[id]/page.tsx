@@ -247,6 +247,14 @@ export default function EditClientPage() {
     setForm((f: any) => ({ ...f, [name]: val }));
   }
 
+  async function openRepDetails() {
+    if (!selectedReps.length) return;
+    const rid = selectedReps[0];
+    const res = await supabase.from("representatives").select("*").eq("id", rid).single();
+    if (res.data) setRepInfo(res.data);
+    setShowRepInfoModal(true);
+  }
+
   async function onSubmit(e: FormEvent) {
     e.preventDefault();
     setError(null);
@@ -579,12 +587,45 @@ export default function EditClientPage() {
                         }} className={btnPrimary}>+ Adicionar</button>
                       </div>
                     </div>
+                  ) : sec.title === "Representante" ? (
+                    <div className="sm:col-span-2 space-y-4">
+                      <div className="flex gap-2">
+                        <div className="flex-1">
+                          <FloatingLabelSelect label="Selecionar Representante" value="" onChange={(e) => { const val = e.target.value; if (!val) return; setSelectedReps([val]); e.currentTarget.selectedIndex = 0; }}>
+                            <option value="">+ Adicionar representante</option>
+                            {repsList.filter((r) => !selectedReps.includes(r.id)).map((r) => (
+                              <option key={r.id} value={r.id}>{(r as any).full_name}</option>
+                            ))}
+                          </FloatingLabelSelect>
+                        </div>
+                        {selectedReps.length ? (
+                          <button type="button" className={btnBlue} onClick={openRepDetails} title="Detalhes">Detalhes</button>
+                        ) : (
+                          <button type="button" className={`${btnBase} bg-gray-400 text-white cursor-not-allowed`} disabled>Detalhes</button>
+                        )}
+                        <button type="button" className={btnPrimary} onClick={() => setShowRepCreateModal(true)}>Novo Representante</button>
+                      </div>
+                      <div className="grid sm:grid-cols-2 gap-4">
+                        <div>
+                          <FloatingLabelInput label={labelMap["representatives_text"]} name="representatives_text" value={String(form.representatives_text || "")} readOnly className="bg-gray-50 text-gray-500 cursor-not-allowed" onChange={() => { }} />
+                        </div>
+                        <div>
+                          <FloatingLabelSelect label="Cargo" name="position" value={form.position || "Representante"} onChange={onChange}>
+                            <option value="Oficial(a)">Oficial(a)</option>
+                            <option value="Respondente (Interino)">Respondente (Interino)</option>
+                            <option value="Representante">Representante</option>
+                          </FloatingLabelSelect>
+                        </div>
+                      </div>
+                    </div>
                   ) : (
                     sec.fields.map(key => {
                       // Filter logic
                       if (key === "cancellation_date" && form.situation !== "Cancelado") return null;
                       if (sec.title === "Contrato" && (key === "implemented" || key === "signed")) return null; // handled via checkbox group
+                      if (sec.title === "Contrato" && (key === "implemented" || key === "signed")) return null; // handled via checkbox group
                       if (sec.title === "Contatos" && (key === "contact_name" || key === "contact_phone")) return null; // handled via custom section
+                      if (sec.title === "Representante" && (key === "representatives_text" || key === "position")) return null; // handled via custom section
 
                       const labelText = labelMap[key] || key;
                       const isReq = requiredFields.has(key) || (hasCloud && (key === "cloud_size" || key === "cloud_date"));
