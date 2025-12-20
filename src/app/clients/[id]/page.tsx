@@ -76,10 +76,11 @@ export default function EditClientPage() {
 
   const [showVMModal, setShowVMModal] = useState(false);
   const [selectedServerForVM, setSelectedServerForVM] = useState<string | null>(null);
-  const [vmForm, setVmForm] = useState({ vm_name: '', ip: '', os: '', username: '', password: '', description: '' });
+  const [vmForm, setVmForm] = useState({ vm_name: '', ip: '', os: '', username: '', password: '', description: '', system_id: '', domain: '', anydesk_id: '', anydesk_password: '' });
   const [vmLoading, setVmLoading] = useState(false);
   const [vms, setVms] = useState<any[]>([]);
   const [expandedServers, setExpandedServers] = useState<Set<string>>(new Set());
+  const [editingVmId, setEditingVmId] = useState<string | null>(null);
 
   const [sistemasList, setSistemasList] = useState<any[]>([]);
   const [selectedSistemas, setSelectedSistemas] = useState<string[]>([]);
@@ -530,7 +531,9 @@ export default function EditClientPage() {
       external_link: serverForm.external_link,
       equipment_model: serverForm.equipment_model,
       disk_qty: serverForm.disk_qty,
-      disk_size: serverForm.disk_size
+      disk_size: serverForm.disk_size,
+      server_brand: serverForm.server_brand,
+      storage_brand: serverForm.storage_brand
     };
 
     let error = null;
@@ -545,7 +548,7 @@ export default function EditClientPage() {
     if (error) {
       alert("Erro ao salvar servidor: " + error.message);
     } else {
-      setServerForm({ hostname: '', ip_address: '', os: '', description: '', username: '', password: '', external_link: '', equipment_model: '', disk_qty: '', disk_size: '' });
+      setServerForm({ hostname: '', ip_address: '', os: '', description: '', username: '', password: '', external_link: '', equipment_model: '', disk_qty: '', disk_size: '', server_brand: '', storage_brand: '' });
       setShowServerForm(false);
       setEditingServerId(null);
       await loadServers();
@@ -563,13 +566,15 @@ export default function EditClientPage() {
       external_link: item.external_link || '',
       equipment_model: item.equipment_model || '',
       disk_qty: item.disk_qty || '',
-      disk_size: item.disk_size || ''
+      disk_size: item.disk_size || '',
+      server_brand: item.server_brand || '',
+      storage_brand: item.storage_brand || ''
     });
     setEditingServerId(item.id);
     setShowServerForm(true);
   }
   function onServerCancel() {
-    setServerForm({ hostname: '', ip_address: '', os: '', description: '', username: '', password: '', external_link: '', equipment_model: '', disk_qty: '', disk_size: '' });
+    setServerForm({ hostname: '', ip_address: '', os: '', description: '', username: '', password: '', external_link: '', equipment_model: '', disk_qty: '', disk_size: '', server_brand: '', storage_brand: '' });
     setShowServerForm(false);
     setEditingServerId(null);
   }
@@ -580,8 +585,27 @@ export default function EditClientPage() {
   }
 
   function onVMOpen(serverId: string) {
+    setEditingVmId(null); // Reset editing state
     setSelectedServerForVM(serverId);
-    setVmForm({ vm_name: '', ip: '', os: '', username: '', password: '', description: '' });
+    setVmForm({ vm_name: '', ip: '', os: '', username: '', password: '', description: '', system_id: '', domain: '', anydesk_id: '', anydesk_password: '' });
+    setShowVMModal(true);
+  }
+
+  function onVMEdit(vm: any) {
+    setEditingVmId(vm.id);
+    setSelectedServerForVM(vm.server_id);
+    setVmForm({
+      vm_name: vm.vm_name || '',
+      ip: vm.ip || '',
+      os: vm.os || '',
+      username: vm.username || '',
+      password: vm.password || '',
+      description: vm.description || '',
+      system_id: vm.system_id || '',
+      domain: vm.domain || '',
+      anydesk_id: vm.anydesk_id || '',
+      anydesk_password: vm.anydesk_password || ''
+    });
     setShowVMModal(true);
   }
 
@@ -598,18 +622,36 @@ export default function EditClientPage() {
       os: vmForm.os,
       username: vmForm.username,
       password: vmForm.password,
-      description: vmForm.description
+      description: vmForm.description,
+      system_id: vmForm.system_id || null, // Handle conditional (null if not applicable) but sticking to form value is safer if managed by UI
+      domain: vmForm.domain,
+      anydesk_id: vmForm.anydesk_id,
+      anydesk_password: vmForm.anydesk_password
     };
 
-    const { error } = await supabase.from('server_vms').insert(payload);
+    // Clean up payload based on vm_name logic to avoid saving garbage if user switched names
+    if (!vmForm.vm_name.includes('Corcel')) payload.system_id = null;
+    if (!vmForm.vm_name.includes('Escort')) payload.domain = null;
+    if (!vmForm.vm_name.includes('Corsa')) { payload.anydesk_id = null; payload.anydesk_password = null; }
+
+    let error;
+    if (editingVmId) {
+      const { error: err } = await supabase.from('server_vms').update(payload).eq('id', editingVmId);
+      error = err;
+    } else {
+      const { error: err } = await supabase.from('server_vms').insert(payload);
+      error = err;
+    }
+
     setVmLoading(false);
 
     if (error) {
       alert("Erro ao salvar VM: " + error.message);
     } else {
-      alert("VM adicionada com sucesso!");
+      alert(editingVmId ? "VM atualizada com sucesso!" : "VM adicionada com sucesso!");
       setShowVMModal(false);
-      setVmForm({ vm_name: '', ip: '', os: '', username: '', password: '', description: '' });
+      setEditingVmId(null);
+      setVmForm({ vm_name: '', ip: '', os: '', username: '', password: '', description: '', system_id: '', domain: '', anydesk_id: '', anydesk_password: '' });
       await loadVMs();
     }
   }
@@ -664,6 +706,28 @@ export default function EditClientPage() {
               <option value="">Selecione...</option>
               {vmOptions.map(opt => <option key={opt} value={opt}>{opt}</option>)}
             </FloatingLabelSelect>
+
+            {vmForm.vm_name.includes('Corcel') && (
+              <div className="animate-in fade-in slide-in-from-top-1">
+                <FloatingLabelSelect label="Sistema" value={vmForm.system_id || ''} onChange={(e) => setVmForm({ ...vmForm, system_id: e.target.value })}>
+                  <option value="">Selecione o Sistema...</option>
+                  {sistemasList.map((s: any) => <option key={s.id} value={s.id}>{s.name} ({s.slug})</option>)}
+                </FloatingLabelSelect>
+              </div>
+            )}
+
+            {vmForm.vm_name.includes('Escort') && (
+              <div className="animate-in fade-in slide-in-from-top-1">
+                <FloatingLabelInput label="Domínio" value={vmForm.domain || ''} onChange={(e) => setVmForm({ ...vmForm, domain: e.target.value })} />
+              </div>
+            )}
+
+            {vmForm.vm_name.includes('Corsa') && (
+              <div className="animate-in fade-in slide-in-from-top-1 grid grid-cols-2 gap-2">
+                <FloatingLabelInput label="AnyDesk ID" value={vmForm.anydesk_id || ''} onChange={(e) => setVmForm({ ...vmForm, anydesk_id: e.target.value })} />
+                <FloatingLabelInput label="Senha AnyDesk" value={vmForm.anydesk_password || ''} onChange={(e) => setVmForm({ ...vmForm, anydesk_password: e.target.value })} />
+              </div>
+            )}
 
             <FloatingLabelInput label="IP" value={vmForm.ip} onChange={(e) => setVmForm({ ...vmForm, ip: e.target.value })} required />
 
@@ -1410,16 +1474,33 @@ export default function EditClientPage() {
                     )}
 
                     {['BMW', 'Ferrari', 'Porsche'].includes(serverForm.hostname) && (
-                      <div className="sm:col-span-2">
+                      <div className="sm:col-span-2 grid sm:grid-cols-2 gap-4">
+                        <FloatingLabelSelect label="Marca Servidor" name="server_brand" value={serverForm.server_brand} onChange={onServerChange}>
+                          <option value="">Selecione...</option>
+                          <option value="Dell">Dell</option>
+                          <option value="HP">HP</option>
+                          <option value="LeNovo">LeNovo</option>
+                        </FloatingLabelSelect>
                         <FloatingLabelInput label="Modelo Equipamento" name="equipment_model" value={serverForm.equipment_model} onChange={onServerChange} />
                       </div>
                     )}
 
                     {serverForm.hostname === 'Storage' && (
-                      <>
-                        <FloatingLabelInput label="Quantidade de Disco" name="disk_qty" value={serverForm.disk_qty} onChange={onServerChange} />
-                        <FloatingLabelInput label="Tamanho dos Discos" name="disk_size" value={serverForm.disk_size} onChange={onServerChange} />
-                      </>
+                      <div className="sm:col-span-2 space-y-4">
+                        <div className="grid sm:grid-cols-2 gap-4">
+                          <FloatingLabelSelect label="Marca Storage" name="storage_brand" value={serverForm.storage_brand || ''} onChange={onServerChange}>
+                            <option value="">Selecione...</option>
+                            <option value="Asustor">Asustor</option>
+                            <option value="WD">WD</option>
+                            <option value="Qnap">Qnap</option>
+                          </FloatingLabelSelect>
+                          <FloatingLabelInput label="Modelo Equipamento" name="equipment_model" value={serverForm.equipment_model} onChange={onServerChange} />
+                        </div>
+                        <div className="grid sm:grid-cols-2 gap-4">
+                          <FloatingLabelInput label="Quantidade de Disco" name="disk_qty" value={serverForm.disk_qty} onChange={onServerChange} />
+                          <FloatingLabelInput label="Tamanho dos Discos" name="disk_size" value={serverForm.disk_size} onChange={onServerChange} />
+                        </div>
+                      </div>
                     )}
 
                     {['Corvette (Firewall)', 'BMW', 'Ferrari', 'Porsche'].includes(serverForm.hostname) && (
@@ -1437,100 +1518,168 @@ export default function EditClientPage() {
               </div>
             )}
 
-            <div className="rounded-lg border bg-white overflow-hidden shadow-sm">
-              <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
-                  <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase w-10"></th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Hostname</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Modelo</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">IP</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">OS</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Acesso</th>
-                    <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Ações</th>
-                  </tr>
-                </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
-                  {servers.length === 0 ? <tr><td colSpan={7} className="px-6 py-4 text-center text-sm text-gray-500">Nenhum servidor cadastrado.</td></tr> :
-                    servers.map(s => (
-                      <React.Fragment key={s.id}>
-                        <tr className={expandedServers.has(s.id) ? "bg-gray-50" : ""}>
-                          <td className="px-6 py-4 text-sm text-gray-500 text-center">
-                            <button onClick={() => toggleServerExpand(s.id)} className="text-gray-400 hover:text-gray-600 transition-colors">
-                              {expandedServers.has(s.id) ?
-                                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" /></svg>
-                                :
-                                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 -rotate-90" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" /></svg>
-                              }
-                            </button>
-                          </td>
-                          <td className="px-6 py-4 text-sm font-medium text-gray-900">{s.hostname}</td>
-                          <td className="px-6 py-4 text-sm text-gray-500">
-                            <button
-                              onClick={() => s.description ? setViewingDescription(s.description) : null}
-                              className={`text-left hover:text-brand-blue-600 hover:underline ${!s.description ? 'cursor-default no-underline opacity-70' : 'cursor-pointer'}`}
-                              title={s.description ? "Clique para ver a descrição completa" : "Sem descrição"}
-                            >
-                              {(s.equipment_model || '').replace(/^Modelo:\s*/i, '') || (s.hostname === 'Storage' ? `${s.disk_qty || ''} Unid. / ${s.disk_size || ''}` : '-')}
-                            </button>
-                          </td>
-                          <td className="px-6 py-4 text-sm text-gray-500">{s.ip_address}</td>
-                          <td className="px-6 py-4 text-sm text-gray-500">{s.os}</td>
-                          <td className="px-6 py-4 text-sm text-gray-500">{s.username} / {s.password}</td>
-                          <td className="px-6 py-4 text-right text-sm space-x-2 whitespace-nowrap">
-                            <button onClick={() => onVMOpen(s.id)} className="text-indigo-600 hover:text-indigo-900 font-medium mr-2">Adicionar VM</button>
-                            <button onClick={() => onServerEdit(s)} className="text-blue-600 hover:text-blue-900">Editar</button>
-                            <button onClick={() => onServerDelete(s.id)} className="text-red-600 hover:text-red-900">Excluir</button>
-                          </td>
-                        </tr>
-                        {expandedServers.has(s.id) && (
-                          <tr>
-                            <td colSpan={7} className="px-0 py-0 bg-gray-50 border-t border-gray-100">
-                              <div className="p-4 pl-16 pr-8">
-                                <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">Máquinas Virtuais (VMs)</h4>
-                                {vms.filter(v => v.server_id === s.id).length === 0 ? (
-                                  <p className="text-sm text-gray-400 italic">Nenhuma VM cadastrada para este servidor.</p>
-                                ) : (
-                                  <table className="min-w-full divide-y divide-gray-200 border rounded-md overflow-hidden bg-white">
-                                    <thead className="bg-gray-100">
-                                      <tr>
-                                        <th className="px-4 py-2 text-left text-xs font-medium text-gray-500">Nome</th>
-                                        <th className="px-4 py-2 text-left text-xs font-medium text-gray-500">IP</th>
-                                        <th className="px-4 py-2 text-left text-xs font-medium text-gray-500">OS</th>
-                                        <th className="px-4 py-2 text-left text-xs font-medium text-gray-500">Usuário / Senha</th>
-                                        <th className="px-4 py-2 text-left text-xs font-medium text-gray-500">Descrição</th>
-                                        <th className="px-4 py-2 text-right text-xs font-medium text-gray-500">Ações</th>
-                                      </tr>
-                                    </thead>
-                                    <tbody className="divide-y divide-gray-200">
-                                      {vms.filter(v => v.server_id === s.id).map(vm => (
-                                        <tr key={vm.id}>
-                                          <td className="px-4 py-2 text-sm text-gray-900">{vm.vm_name}</td>
-                                          <td className="px-4 py-2 text-sm text-gray-500">{vm.ip}</td>
-                                          <td className="px-4 py-2 text-sm text-gray-500">{vm.os}</td>
-                                          <td className="px-4 py-2 text-sm text-gray-500">{vm.username} / {vm.password}</td>
-                                          <td className="px-4 py-2 text-sm text-gray-500 max-w-xs truncate" title={vm.description}>{vm.description}</td>
-                                          <td className="px-4 py-2 text-right text-sm">
-                                            <button onClick={async () => {
-                                              if (!confirm('Excluir VM?')) return;
-                                              await supabase.from('server_vms').delete().eq('id', vm.id);
-                                              await loadVMs();
-                                            }} className="text-red-600 hover:text-red-800 text-xs">Excluir</button>
-                                          </td>
-                                        </tr>
-                                      ))}
-                                    </tbody>
-                                  </table>
-                                )}
-                              </div>
-                            </td>
-                          </tr>
-                        )}
-                      </React.Fragment>
-                    ))
+            <div className="space-y-8">
+              {[
+                { title: 'Firewall', color: 'text-red-600', filter: (s: any) => s.hostname === 'Corvette (Firewall)' },
+                {
+                  title: 'Servidores',
+                  color: 'text-brand-blue-600',
+                  filter: (s: any) => ['BMW', 'Ferrari', 'Porsche'].includes(s.hostname),
+                  sort: (a: any, b: any) => {
+                    const order = ['BMW', 'Ferrari', 'Porsche'];
+                    return order.indexOf(a.hostname) - order.indexOf(b.hostname);
                   }
-                </tbody>
-              </table>
+                },
+                { title: 'Storage', color: 'text-gray-700', filter: (s: any) => s.hostname === 'Storage' },
+                { title: 'Outros', color: 'text-gray-700', filter: (s: any) => !['BMW', 'Ferrari', 'Porsche', 'Storage', 'Corvette (Firewall)'].includes(s.hostname) }
+              ].map((group) => {
+                let groupServers = servers.filter(group.filter);
+                if ((group as any).sort) {
+                  groupServers = groupServers.sort((group as any).sort);
+                }
+                if (groupServers.length === 0) return null;
+
+                return (
+                  <div key={group.title} className="rounded-lg border bg-white overflow-hidden shadow-sm animate-in fade-in slide-in-from-bottom-2 duration-500">
+                    <div className="px-6 py-3 bg-gray-50 border-b border-gray-200 flex items-center gap-2">
+                      <h4 className={`text-sm font-bold uppercase tracking-wide ${group.color}`}>{group.title}</h4>
+                      <span className="bg-gray-200 text-gray-600 py-0.5 px-2 rounded-full text-xs font-medium">{groupServers.length}</span>
+                    </div>
+                    <table className="min-w-full divide-y divide-gray-200">
+                      <thead className="bg-white text-gray-500">
+                        <tr>
+                          <th className="px-6 py-3 text-left text-xs font-medium uppercase w-[40px]"></th>
+                          <th className="px-6 py-3 text-left text-xs font-medium uppercase w-[15%]">Hostname</th>
+                          <th className="px-6 py-3 text-left text-xs font-medium uppercase w-[15%]">Marca</th>
+                          <th className="px-6 py-3 text-left text-xs font-medium uppercase w-[20%]">Modelo</th>
+                          <th className="px-6 py-3 text-left text-xs font-medium uppercase w-[15%]">IP</th>
+                          <th className="px-6 py-3 text-left text-xs font-medium uppercase w-[10%]">OS</th>
+                          <th className="px-6 py-3 text-left text-xs font-medium uppercase">Acesso</th>
+                          <th className="px-6 py-3 text-right text-xs font-medium uppercase w-[150px]">Ações</th>
+                        </tr>
+                      </thead>
+                      <tbody className="bg-white divide-y divide-gray-200">
+                        {groupServers.map(s => {
+                          const isHypervisor = ['BMW', 'Ferrari', 'Porsche'].includes(s.hostname);
+                          return (
+                            <React.Fragment key={s.id}>
+                              <tr className={`hover:bg-gray-50 transition-colors ${expandedServers.has(s.id) ? "bg-blue-50/30" : ""}`}>
+                                <td className="px-6 py-4 text-sm text-gray-500 text-center">
+                                  {isHypervisor && (
+                                    <button onClick={() => toggleServerExpand(s.id)} className="text-gray-400 hover:text-brand-blue-600 transition-colors p-1 rounded-full hover:bg-black/5">
+                                      {expandedServers.has(s.id) ?
+                                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" /></svg>
+                                        :
+                                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 -rotate-90" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" /></svg>
+                                      }
+                                    </button>
+                                  )}
+                                </td>
+                                <td className="px-6 py-4 text-sm font-semibold text-gray-900">{s.hostname}</td>
+                                <td className="px-6 py-4 text-sm text-gray-500">{s.server_brand || s.storage_brand || '-'}</td>
+                                <td className="px-6 py-4 text-sm text-gray-500">
+                                  <button
+                                    onClick={() => s.description ? setViewingDescription(s.description) : null}
+                                    className={`text-left hover:text-brand-blue-600 hover:underline ${!s.description ? 'cursor-default no-underline opacity-70' : 'cursor-pointer'}`}
+                                    title={s.description ? "Clique para ver a descrição completa" : "Sem descrição"}
+                                  >
+                                    {(s.equipment_model || '').replace(/^Modelo:\s*/i, '') || (s.hostname === 'Storage' ? `${s.disk_qty || ''} Unid. / ${s.disk_size || ''}` : '-')}
+                                  </button>
+                                </td>
+                                <td className="px-6 py-4 text-sm text-gray-500 font-mono text-xs">{s.ip_address}</td>
+                                <td className="px-6 py-4 text-sm text-gray-500">{s.os}</td>
+                                <td className="px-6 py-4 text-sm text-gray-500">
+                                  <div className="flex flex-col">
+                                    <span>{s.username}</span>
+                                    <span className="text-gray-400 text-xs truncate max-w-[100px]">{s.password}</span>
+                                  </div>
+                                </td>
+                                <td className="px-6 py-4 text-right text-sm space-x-2 whitespace-nowrap">
+                                  {isHypervisor && (
+                                    <button onClick={() => onVMOpen(s.id)} className="text-indigo-600 hover:text-indigo-900 font-medium mr-2 text-xs uppercase tracking-wider border border-indigo-200 px-2 py-1 rounded hover:bg-indigo-50">+ VM</button>
+                                  )}
+                                  <button onClick={() => onServerEdit(s)} className="text-blue-600 hover:text-blue-900 font-medium">Editar</button>
+                                  <button onClick={() => onServerDelete(s.id)} className="text-red-600 hover:text-red-900 font-medium">Excluir</button>
+                                </td>
+                              </tr>
+                              {expandedServers.has(s.id) && (
+                                <tr className="bg-gray-50/50 shadow-inner">
+                                  <td colSpan={7} className="px-0 py-0 border-t border-gray-100">
+                                    <div className="p-4 pl-16 pr-8 bg-slate-50 border-l-4 border-brand-blue-500">
+                                      <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3 flex items-center gap-2">
+                                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor"><path d="M3 12v3c0 1.657 3.134 3 7 3s7-1.343 7-3v-3c0 1.657-3.134 3-7 3s-7-1.343-7-3z" /><path d="M3 7v3c0 1.657 3.134 3 7 3s7-1.343 7-3V7c0 1.657-3.134 3-7 3S3 8.657 3 7z" /><path d="M17 5c0 1.657-3.134 3-7 3S3 6.657 3 5s3.134-3 7-3 7 1.343 7 3z" /></svg>
+                                        Máquinas Virtuais
+                                        <span className="bg-gray-200 text-gray-600 text-[10px] px-1.5 py-0.5 rounded-full ml-1 font-bold">
+                                          {vms.filter(v => v.server_id === s.id).length}
+                                        </span>
+                                      </h4>
+                                      {vms.filter(v => v.server_id === s.id).length === 0 ? (
+                                        <p className="text-sm text-gray-400 italic py-2">Nenhuma VM cadastrada para este servidor.</p>
+                                      ) : (
+                                        <div className="bg-white rounded border border-gray-200 overflow-hidden">
+                                          <table className="min-w-full divide-y divide-gray-200">
+                                            <thead className="bg-gray-50">
+                                              <tr>
+                                                <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Nome</th>
+                                                <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">IP</th>
+                                                <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">OS</th>
+                                                <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Credenciais</th>
+                                                <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Descrição</th>
+                                                <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">Ações</th>
+                                              </tr>
+                                            </thead>
+                                            <tbody className="divide-y divide-gray-100">
+                                              {vms.filter(v => v.server_id === s.id).map(vm => (
+                                                <tr key={vm.id} className="hover:bg-gray-50">
+                                                  <td className="px-4 py-2 text-sm font-medium text-gray-900">
+                                                    {vm.vm_name}
+                                                    {vm.system_id && sistemasList.find((x: any) => x.id === vm.system_id) && (
+                                                      <div className="text-xs text-gray-500 font-normal mt-0.5">
+                                                        Sistema: {sistemasList.find((x: any) => x.id === vm.system_id)?.name}
+                                                      </div>
+                                                    )}
+                                                    {vm.domain && <div className="text-xs text-gray-500 font-normal mt-0.5">Domínio: {vm.domain}</div>}
+                                                    {vm.anydesk_id && (
+                                                      <div className="text-xs text-gray-500 font-normal mt-0.5">
+                                                        AnyDesk: {vm.anydesk_id} {vm.anydesk_password && <span className="text-gray-400">/ {vm.anydesk_password}</span>}
+                                                      </div>
+                                                    )}
+                                                  </td>
+                                                  <td className="px-4 py-2 text-sm text-gray-500 font-mono text-xs">{vm.ip}</td>
+                                                  <td className="px-4 py-2 text-sm text-gray-500">{vm.os}</td>
+                                                  <td className="px-4 py-2 text-sm text-gray-500 text-xs">{vm.username} / {vm.password}</td>
+                                                  <td className="px-4 py-2 text-sm text-gray-500 max-w-xs truncate text-xs" title={vm.description}>{vm.description}</td>
+                                                  <td className="px-4 py-2 text-right text-sm space-x-2">
+                                                    <button onClick={() => onVMEdit(vm)} className="text-blue-500 hover:text-blue-700 text-xs px-2 py-1 rounded hover:bg-blue-50">Editar</button>
+                                                    <button onClick={async () => {
+                                                      if (!confirm('Excluir VM?')) return;
+                                                      await supabase.from('server_vms').delete().eq('id', vm.id);
+                                                      await loadVMs();
+                                                    }} className="text-red-500 hover:text-red-700 text-xs px-2 py-1 rounded hover:bg-red-50">Excluir</button>
+                                                  </td>
+                                                </tr>
+                                              ))}
+                                            </tbody>
+                                          </table>
+                                        </div>
+                                      )}
+                                    </div>
+                                  </td>
+                                </tr>
+                              )}
+                            </React.Fragment>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                );
+              })}
+              {servers.length === 0 && (
+                <div className="rounded-lg border bg-white p-8 text-center text-gray-500">
+                  Nenhum servidor cadastrado.
+                </div>
+              )}
             </div>
           </div>
         )
@@ -1543,7 +1692,7 @@ export default function EditClientPage() {
       {tab === 'dadosadicionais' && <div className="p-8 text-center text-gray-400 border rounded-lg border-dashed">Dados Adicionais vazio.</div>}
 
       <DescriptionModal content={viewingDescription || ""} onClose={() => setViewingDescription(null)} />
-      <VMModal />
+      {VMModal()}
 
       {
         showRepCreateModal && (
