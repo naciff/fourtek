@@ -158,9 +158,7 @@ export default function SidebarMenu() {
           <span className="label hidden md:inline">Integrações</span>
         </Link>
       </CollapsibleSection>
-      <div className="mt-auto px-4 py-2 text-xs text-gray-400 border-t border-gray-100 dark:border-gray-800">
-        v{require('../../../package.json').version}
-      </div>
+
     </div>
   );
 }

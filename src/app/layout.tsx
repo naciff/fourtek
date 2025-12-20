@@ -18,7 +18,7 @@ export const metadata = {
 
 export default async function RootLayout({ children }: { children: ReactNode }) {
   const supabase = supabaseServer();
-  const version = process.env.NEXT_PUBLIC_APP_VERSION || "v1.0.0";
+  const version = "v" + require("../../package.json").version;
   const logoHeaderSrc = process.env.NEXT_PUBLIC_LOGO_HEADER_URL || "/fourtek-logo.svg";
   const logoSymbolSrc = process.env.NEXT_PUBLIC_LOGO_SYMBOL_URL || "/fourtek-symbol.svg";
   let session: any = null;
