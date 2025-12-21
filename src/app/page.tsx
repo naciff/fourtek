@@ -1,4 +1,16 @@
-export default function HomePage() {
+import { redirect } from "next/navigation";
+import { supabaseServer } from "@/lib/supabase-server";
+
+export default async function HomePage() {
+  const supabase = supabaseServer();
+  const {
+    data: { session },
+  } = await supabase.auth.getSession();
+
+  if (session) {
+    redirect("/dashboard");
+  }
+
   return (
     <div className="flex flex-col items-center justify-center min-h-[60vh] gap-6 p-10 text-center">
       <h1 className="text-4xl font-bold text-brand-blue-800">Fourtek Sync</h1>
@@ -16,9 +28,6 @@ export default function HomePage() {
           Entrar no Sistema
         </a>
       </div>
-      <p className="text-xs text-gray-400 mt-10">
-        Se você está vendo esta página, o Deploy foi bem-sucedido.
-      </p>
     </div>
   );
 }
