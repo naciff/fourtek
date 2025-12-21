@@ -136,72 +136,216 @@ export function UserDropdown({ displayName, avatarUrl }: { displayName: string, 
         <div className="relative" onClick={(e) => e.stopPropagation()}>
             <button
                 onClick={() => setOpen(!open)}
-                className="flex items-center gap-2 py-1 px-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                className="flex items-center gap-3 py-1 px-1 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
             >
-                {avatarUrl ? (
-                    <img src={avatarUrl} alt="Avatar" className="h-9 w-9 rounded-full border border-gray-200 dark:border-gray-600 object-cover" />
-                ) : (
-                    <div className="h-9 w-9 rounded-full bg-gray-100 dark:bg-gray-700 flex items-center justify-center text-gray-500 dark:text-gray-400 border border-gray-200 dark:border-gray-600">
-                        <span className="text-sm font-semibold">{displayName ? displayName[0].toUpperCase() : "U"}</span>
-                    </div>
-                )}
-                <div className="hidden lg:flex flex-col items-start pr-1">
-                    <span className="text-sm font-bold text-gray-900 dark:text-gray-100 leading-tight">{displayName || "Usuário"}</span>
+                <div className="relative">
+                    {avatarUrl ? (
+                        <img src={avatarUrl} alt="Avatar" className="h-9 w-9 rounded-full border border-gray-200 dark:border-gray-600 object-cover" />
+                    ) : (
+                        <div className="h-9 w-9 rounded-full bg-gray-100 dark:bg-gray-700 flex items-center justify-center text-gray-500 dark:text-gray-400 border border-gray-200 dark:border-gray-600">
+                            <span className="text-sm font-semibold">{displayName ? displayName[0].toUpperCase() : "U"}</span>
+                        </div>
+                    )}
                 </div>
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={`text-gray-400 transition-transform duration-200 ${open ? "rotate-180" : ""}`}><polyline points="6 9 12 15 18 9"></polyline></svg>
+                <div className="hidden lg:flex items-center gap-2">
+                    <span className="text-sm font-bold text-gray-900 dark:text-gray-100">{displayName || "Usuário"}</span>
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" className={`text-gray-500 transition-transform duration-200 ${open ? "rotate-180" : ""}`}><polyline points="6 9 12 15 18 9"></polyline></svg>
+                </div>
             </button>
 
             {open && (
-                <div className="absolute right-0 top-full mt-2 w-56 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-xl p-1.5 z-50 animate-in fade-in slide-in-from-top-2 duration-200">
-                    <div className="px-3 py-2 mb-1">
-                        <span className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Minha Conta</span>
+                <div className="absolute right-0 top-full mt-2 w-64 rounded-2xl border border-gray-100 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-2xl p-2 z-50 animate-in fade-in slide-in-from-top-2 duration-200">
+                    <div className="px-4 py-3 mb-1 border-b border-gray-50 dark:border-gray-700/50">
+                        <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Minha Conta</span>
                     </div>
 
-                    <a
-                        href="/profile"
-                        className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 hover:text-gray-900 dark:hover:text-white transition-colors"
-                    >
-                        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400">
-                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
-                        </div>
-                        Perfil
-                    </a>
+                    <div className="space-y-1 mt-1">
+                        <a
+                            href="/profile"
+                            className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold text-gray-600 dark:text-gray-300 hover:bg-brand-blue-50/50 dark:hover:bg-blue-900/20 hover:text-brand-blue-600 dark:hover:text-blue-400 transition-all group"
+                        >
+                            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 group-hover:scale-110 transition-transform">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+                            </div>
+                            Perfil
+                        </a>
 
-                    <a
-                        href="/settings"
-                        className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 hover:text-gray-900 dark:hover:text-white transition-colors"
-                    >
-                        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gray-50 dark:bg-gray-700/50 text-gray-600 dark:text-gray-400">
-                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.1a2 2 0 0 1-1-1.72v-.51a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"></path><circle cx="12" cy="12" r="3"></circle></svg>
-                        </div>
-                        Configurações
-                    </a>
+                        <button
+                            onClick={() => {
+                                setOpen(false);
+                                window.dispatchEvent(new CustomEvent("open-settings"));
+                            }}
+                            className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50 hover:text-gray-900 dark:hover:text-white transition-all group"
+                        >
+                            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gray-50 dark:bg-gray-700/50 text-gray-600 dark:text-gray-400 group-hover:rotate-45 transition-transform">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.1a2 2 0 0 1-1-1.72v-.51a2 2 0 0 1 1-1.74l-.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                            </div>
+                            Configurações
+                        </button>
 
-                    <a
-                        href="/help"
-                        className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 hover:text-gray-900 dark:hover:text-white transition-colors"
-                    >
-                        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-orange-50 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400">
-                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
-                        </div>
-                        Ajuda
-                    </a>
+                        <a
+                            href="/help"
+                            className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold text-gray-600 dark:text-gray-300 hover:bg-orange-50/50 dark:hover:bg-orange-900/10 hover:text-orange-600 dark:hover:text-orange-400 transition-all group"
+                        >
+                            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-orange-50 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400 group-hover:scale-110 transition-transform">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
+                            </div>
+                            Ajuda
+                        </a>
+                    </div>
 
-                    <div className="my-1.5 h-px bg-gray-100 dark:bg-gray-700 mx-2" />
+                    <div className="my-2 h-px bg-gray-100 dark:bg-gray-700 mx-2" />
 
-                    <form action="/auth/logout" method="post">
+                    <form action="/auth/logout" method="post" className="p-1">
                         <button
                             type="submit"
-                            className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-semibold text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 hover:text-red-700 transition-colors"
+                            className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-bold text-red-500 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 hover:text-red-600 transition-all group"
                         >
-                            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400">
-                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
+                            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-red-50 dark:bg-red-900/30 text-red-500 dark:text-red-400 group-hover:translate-x-1 transition-transform">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
                             </div>
                             Sair
                         </button>
                     </form>
                 </div>
             )}
+        </div>
+    );
+}
+
+export function SettingsDrawer() {
+    const [open, setOpen] = useState(false);
+    const [toolbar, setToolbar] = useState({ visible: true, position: 'fixed' });
+    const [nav, setNav] = useState({ open: true, position: 'side', options: ['user-panel'] });
+    const [footer, setFooter] = useState({ visible: true, position: 'static' });
+
+    useEffect(() => {
+        const handler = () => setOpen(true);
+        window.addEventListener("open-settings", handler);
+        return () => window.removeEventListener("open-settings", handler);
+    }, []);
+
+    if (!open) return null;
+
+    return (
+        <div className="fixed inset-0 z-[100] flex justify-end bg-black/20 backdrop-blur-sm animate-in fade-in duration-300" onClick={() => setOpen(false)}>
+            <div
+                className="w-80 h-full bg-white dark:bg-gray-900 shadow-2xl overflow-y-auto animate-in slide-in-from-right duration-300 p-6"
+                onClick={(e) => e.stopPropagation()}
+            >
+                <div className="flex items-center justify-between mb-8">
+                    <h2 className="text-xl font-bold text-gray-900 dark:text-white">Configurações</h2>
+                    <button onClick={() => setOpen(false)} className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full transition-colors">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                    </button>
+                </div>
+
+                <div className="space-y-10">
+                    {/* BARRA DE FERRAMENTAS */}
+                    <section>
+                        <h3 className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-4">Barra de Ferramentas</h3>
+                        <div className="space-y-4">
+                            <label className="flex items-center justify-between cursor-pointer group">
+                                <span className="text-sm font-semibold text-gray-700 dark:text-gray-300">Visível</span>
+                                <div className="relative inline-flex items-center cursor-pointer">
+                                    <input type="checkbox" checked={toolbar.visible} onChange={(e) => setToolbar({ ...toolbar, visible: e.target.checked })} className="sr-only peer" />
+                                    <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-brand-green-500"></div>
+                                </div>
+                            </label>
+
+                            <div className="pt-2">
+                                <span className="text-[10px] font-bold text-gray-400 uppercase tracking-tight mb-3 block">Posição</span>
+                                <div className="space-y-3">
+                                    {['Acima Fixo', 'Fixo', 'Estático'].map((pos) => (
+                                        <label key={pos} className="flex items-center gap-3 cursor-pointer group">
+                                            <div className="relative flex items-center justify-center">
+                                                <input type="radio" name="toolbar-pos" checked={toolbar.position === pos.toLowerCase().replace(' ', '-')} onChange={() => setToolbar({ ...toolbar, position: pos.toLowerCase().replace(' ', '-') })} className="peer sr-only" />
+                                                <div className="h-5 w-5 rounded-full border-2 border-gray-300 dark:border-gray-600 peer-checked:border-brand-green-500 transition-all"></div>
+                                                <div className="absolute h-2.5 w-2.5 rounded-full bg-brand-green-500 scale-0 peer-checked:scale-100 transition-transform"></div>
+                                            </div>
+                                            <span className="text-sm font-medium text-gray-600 dark:text-gray-400 group-hover:text-gray-900 dark:group-hover:text-white">{pos}</span>
+                                        </label>
+                                    ))}
+                                </div>
+                            </div>
+                        </div>
+                    </section>
+
+                    {/* NAVEGAÇÃO */}
+                    <section>
+                        <h3 className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-4">Navegação</h3>
+                        <div className="space-y-4">
+                            <label className="flex items-center justify-between cursor-pointer">
+                                <span className="text-sm font-semibold text-gray-700 dark:text-gray-300">Abrir</span>
+                                <div className="relative inline-flex items-center cursor-pointer">
+                                    <input type="checkbox" checked={nav.open} onChange={(e) => setNav({ ...nav, open: e.target.checked })} className="sr-only peer" />
+                                    <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-brand-green-500"></div>
+                                </div>
+                            </label>
+
+                            <div className="pt-2">
+                                <span className="text-[10px] font-bold text-gray-400 uppercase tracking-tight mb-3 block">Posição</span>
+                                <div className="space-y-3">
+                                    {['Principal', 'Lado'].map((pos) => (
+                                        <label key={pos} className="flex items-center gap-3 cursor-pointer group">
+                                            <div className="relative flex items-center justify-center">
+                                                <input type="radio" name="nav-pos" checked={nav.position === pos.toLowerCase()} onChange={() => setNav({ ...nav, position: pos.toLowerCase() })} className="peer sr-only" />
+                                                <div className="h-5 w-5 rounded-full border-2 border-gray-300 dark:border-gray-600 peer-checked:border-brand-green-500 transition-all"></div>
+                                                <div className="absolute h-2.5 w-2.5 rounded-full bg-brand-green-500 scale-0 peer-checked:scale-100 transition-transform"></div>
+                                            </div>
+                                            <span className="text-sm font-medium text-gray-600 dark:text-gray-400 group-hover:text-gray-900 dark:group-hover:text-white">{pos}</span>
+                                        </label>
+                                    ))}
+                                </div>
+                            </div>
+
+                            <div className="pt-2">
+                                <span className="text-[10px] font-bold text-gray-400 uppercase tracking-tight mb-3 block">Opções</span>
+                                <div className="space-y-3">
+                                    <label className="flex items-center gap-3 cursor-pointer group">
+                                        <input type="checkbox" className="h-5 w-5 rounded border-gray-300 text-brand-green-600 focus:ring-brand-green-500" />
+                                        <span className="text-sm font-medium text-gray-600 dark:text-gray-400">Desmoronou</span>
+                                    </label>
+                                    <label className="flex items-center gap-3 cursor-pointer group">
+                                        <input type="checkbox" checked={nav.options.includes('user-panel')} onChange={() => { }} className="h-5 w-5 rounded border-gray-300 text-brand-green-600 focus:ring-brand-green-500" />
+                                        <span className="text-sm font-medium text-gray-600 dark:text-gray-400">Exibir painel do usuário</span>
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                    </section>
+
+                    {/* RODAPÉ */}
+                    <section>
+                        <h3 className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-4">Rodapé</h3>
+                        <div className="space-y-4">
+                            <label className="flex items-center justify-between cursor-pointer">
+                                <span className="text-sm font-semibold text-gray-700 dark:text-gray-300">Visível</span>
+                                <div className="relative inline-flex items-center cursor-pointer">
+                                    <input type="checkbox" checked={footer.visible} onChange={(e) => setFooter({ ...footer, visible: e.target.checked })} className="sr-only peer" />
+                                    <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-brand-green-500"></div>
+                                </div>
+                            </label>
+
+                            <div className="pt-2">
+                                <span className="text-[10px] font-bold text-gray-400 uppercase tracking-tight mb-3 block">Posição</span>
+                                <div className="space-y-3">
+                                    {['Acima Fixo', 'Fixo', 'Estático'].map((pos) => (
+                                        <label key={pos} className="flex items-center gap-3 cursor-pointer group">
+                                            <div className="relative flex items-center justify-center">
+                                                <input type="radio" name="footer-pos" checked={footer.position === pos.toLowerCase().replace(' ', '-')} onChange={() => setFooter({ ...footer, position: pos.toLowerCase().replace(' ', '-') })} className="peer sr-only" />
+                                                <div className="h-5 w-5 rounded-full border-2 border-gray-300 dark:border-gray-600 peer-checked:border-brand-green-500 transition-all"></div>
+                                                <div className="absolute h-2.5 w-2.5 rounded-full bg-brand-green-500 scale-0 peer-checked:scale-100 transition-transform"></div>
+                                            </div>
+                                            <span className="text-sm font-medium text-gray-600 dark:text-gray-400 group-hover:text-gray-900 dark:group-hover:text-white">{pos}</span>
+                                        </label>
+                                    ))}
+                                </div>
+                            </div>
+                        </div>
+                    </section>
+                </div>
+            </div>
         </div>
     );
 }

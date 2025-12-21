@@ -3,7 +3,7 @@ import type { ReactNode } from "react";
 import Link from "next/link";
 import SidebarCollapse from "@/components/layout/SidebarCollapse";
 import SidebarMenu from "@/components/layout/SidebarMenu";
-import { DateDisplay, FullscreenToggle, NotificationBell, ThemeToggle, UserDropdown } from "@/components/layout/HeaderComponents";
+import { DateDisplay, FullscreenToggle, NotificationBell, SettingsDrawer, ThemeToggle, UserDropdown } from "@/components/layout/HeaderComponents";
 import { supabaseServer } from "@/lib/supabase-server";
 import { Inter } from "next/font/google";
 const inter = Inter({ subsets: ["latin"] });
@@ -118,7 +118,7 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
                     </div>
                     <ThemeToggle />
                     <div className="h-8 w-px bg-black/10 dark:bg-white/10 mx-1" />
-                    <UserDropdown displayName={firstName} avatarUrl={avatar} />
+                    <UserDropdown displayName={displayName} avatarUrl={avatar} />
                   </div>
                 </div>
               </header>
@@ -131,6 +131,7 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
                 <span className="absolute right-4">Versão {version.substring(1)}</span>
               </footer>
             )}
+            {hasSession && <SettingsDrawer />}
             {/* navegação móvel inferior removida */}
           </div>
         </div>
