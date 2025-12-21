@@ -18,14 +18,25 @@ export const metadata = {
 
 export default async function RootLayout({ children }: { children: ReactNode }) {
   const supabase = supabaseServer();
-  const version = "v" + require("../../package.json").version;
+
+  // Safe version reading
+  let version = "v0.1.0";
+  try {
+    version = "v" + require("../../package.json").version;
+  } catch (e) {
+    console.warn("RootLayout: Could not read package.json version");
+  }
+
   const logoHeaderSrc = process.env.NEXT_PUBLIC_LOGO_HEADER_URL || "/fourtek-logo.svg";
   const logoSymbolSrc = process.env.NEXT_PUBLIC_LOGO_SYMBOL_URL || "/fourtek-symbol.svg";
+
   let session: any = null;
   try {
     const { data } = await supabase.auth.getSession();
-    session = data.session;
-  } catch { }
+    session = data?.session;
+  } catch (err) {
+    console.warn("RootLayout: Session fetch failed");
+  }
   const user = session?.user;
   let displayName = String(user?.user_metadata?.name || user?.user_metadata?.full_name || user?.email || "");
   try {
