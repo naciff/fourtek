@@ -3,7 +3,7 @@ import type { ReactNode } from "react";
 import Link from "next/link";
 import SidebarCollapse from "@/components/layout/SidebarCollapse";
 import SidebarMenu from "@/components/layout/SidebarMenu";
-import { DateDisplay, ThemeToggle, UserDropdown } from "@/components/layout/HeaderComponents";
+import { DateDisplay, FullscreenToggle, NotificationBell, ThemeToggle, UserDropdown } from "@/components/layout/HeaderComponents";
 import { supabaseServer } from "@/lib/supabase-server";
 import { Inter } from "next/font/google";
 const inter = Inter({ subsets: ["latin"] });
@@ -110,9 +110,14 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
                   <div className="flex items-center">
                     <img src={logoHeaderSrc} alt="FourTek" className="h-8" />
                   </div>
-                  <div className="flex items-center gap-3 text-gray-800 dark:text-gray-200">
+                  <div className="flex items-center gap-4 text-gray-800 dark:text-gray-200">
                     <DateDisplay />
+                    <div className="flex items-center gap-2">
+                      <FullscreenToggle />
+                      <NotificationBell count={5} />
+                    </div>
                     <ThemeToggle />
+                    <div className="h-8 w-px bg-black/10 dark:bg-white/10 mx-1" />
                     <UserDropdown displayName={firstName} avatarUrl={avatar} />
                   </div>
                 </div>
