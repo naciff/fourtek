@@ -170,12 +170,12 @@ export function ClientDashboard({ clientId }: { clientId: string }) {
             setLoading(false);
         }
         load();
-    }, [clientId]);
+    }, [clientId, supabase]);
 
     const [visibleWidgets, setVisibleWidgets] = useState<Record<string, boolean>>(() => {
         return WIDGETS.reduce((acc, w) => ({ ...acc, [w.id]: true }), {});
     });
-    
+
     // Drag and Drop Ordery
     const [widgetOrder, setWidgetOrder] = useState<string[]>(WIDGETS.map(w => w.id));
 
@@ -231,7 +231,7 @@ export function ClientDashboard({ clientId }: { clientId: string }) {
                 const oldIndex = items.indexOf(active.id as string);
                 const newIndex = items.indexOf(over.id as string);
                 const newOrder = arrayMove(items, oldIndex, newIndex);
-                
+
                 // Save to local storage
                 localStorage.setItem('client_dashboard_order', JSON.stringify(newOrder));
                 return newOrder;
@@ -662,12 +662,12 @@ export function ClientDashboard({ clientId }: { clientId: string }) {
             </div>
 
             {/* Content Grid with Drag and Drop */}
-            <DndContext 
+            <DndContext
                 sensors={sensors}
                 collisionDetection={closestCenter}
                 onDragEnd={handleDragEnd}
             >
-                <SortableContext 
+                <SortableContext
                     items={widgetOrder}
                     strategy={rectSortingStrategy}
                 >

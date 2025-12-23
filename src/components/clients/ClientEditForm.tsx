@@ -1,5 +1,5 @@
 "use client";
-import React, { useEffect, useState, FormEvent } from "react";
+import React, { useEffect, useState, FormEvent, useCallback } from "react";
 import { supabaseBrowser } from "@/lib/supabase-browser";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
@@ -275,8 +275,9 @@ export function ClientEditForm({ clientId }: { clientId?: string }) {
 
       setLoading(false);
     }
+
     load();
-  }, [id, supabase, isNew]);
+  }, [id, supabase, isNew, loadProv74, loadRelatorios, loadPcn, setServicesList, setContacts, setSelectedServices, setSelectedReps, setSistemasList, setSelectedSistemas]);
 
   useEffect(() => {
     const names = selectedReps
@@ -306,10 +307,10 @@ export function ClientEditForm({ clientId }: { clientId?: string }) {
     "checkmk", "link_internet", "impressora", "firewall", "backup_nuvem", "servidor_replicacao", "licencas_originais"
   ];
 
-  async function loadProv74() {
+  const loadProv74 = useCallback(async () => {
     const { data } = await supabase.from('prov74_checklist').select('*').eq('client_id', id).order('created_at', { ascending: false });
     if (data) setProv74History(data);
-  }
+  }, [id, supabase]);
 
   /* Relatorios State */
   const [relatoriosForm, setRelatoriosForm] = useState({
@@ -322,10 +323,10 @@ export function ClientEditForm({ clientId }: { clientId?: string }) {
   const [relatoriosHistory, setRelatoriosHistory] = useState<any[]>([]);
   const [relatoriosLoading, setRelatoriosLoading] = useState(false);
 
-  async function loadRelatorios() {
+  const loadRelatorios = useCallback(async () => {
     const { data } = await supabase.from('client_reports').select('*').eq('client_id', id).order('created_at', { ascending: false });
     if (data) setRelatoriosHistory(data);
-  }
+  }, [id, supabase]);
 
   async function onRelatoriosSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -366,10 +367,10 @@ export function ClientEditForm({ clientId }: { clientId?: string }) {
   const [dadosAdicionaisHistory, setDadosAdicionaisHistory] = useState<any[]>([]);
   const [dadosAdicionaisLoading, setDadosAdicionaisLoading] = useState(false);
 
-  async function loadDadosAdicionais() {
+  const loadDadosAdicionais = useCallback(async () => {
     const { data } = await supabase.from('client_additional_data').select('*').eq('client_id', id).order('created_at', { ascending: false });
     if (data) setDadosAdicionaisHistory(data);
-  }
+  }, [id, supabase]);
 
   async function onDadosAdicionaisSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -419,13 +420,13 @@ export function ClientEditForm({ clientId }: { clientId?: string }) {
   const [pcnHistory, setPcnHistory] = useState<any[]>([]);
   const [pcnLoading, setPcnLoading] = useState(false);
 
-  async function loadPcn() {
+  const loadPcn = useCallback(async () => {
     const { data } = await supabase.from('client_pcn').select('*').eq('client_id', id).order('created_at', { ascending: false });
     if (data) setPcnHistory(data);
 
     // Load Additional Data
     loadDadosAdicionais();
-  }
+  }, [id, supabase, loadDadosAdicionais]);
 
   async function onPcnSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -513,7 +514,7 @@ export function ClientEditForm({ clientId }: { clientId?: string }) {
     else if (tab === 'acesso') { void loadAcessos(); }
     else if (tab === 'servidores') { void loadServers(); void loadVMs(); }
     else if (tab === 'prov74') { void loadProv74(); }
-  }, [tab, id]);
+  }, [tab, id, loadInvHist, loadAcessos, loadServers, loadVMs, loadProv74]);
 
   function buildAddress(f: any) {
     if (!f) return "";
@@ -714,10 +715,10 @@ export function ClientEditForm({ clientId }: { clientId?: string }) {
     router.replace("/clients");
   }
 
-  async function loadInvHist() {
+  const loadInvHist = useCallback(async () => {
     const res = await supabase.from('inventario_historico').select('*').eq('client_id', id).order('created_at', { ascending: false });
     setInvHist(res.data || []);
-  }
+  }, [id, supabase]);
 
   async function onInvHistSubmit(e: FormEvent) {
     e.preventDefault();
@@ -773,10 +774,10 @@ export function ClientEditForm({ clientId }: { clientId?: string }) {
     setShowInvForm(false);
   }
 
-  async function loadAcessos() {
+  const loadAcessos = useCallback(async () => {
     const res = await supabase.from('dados_acesso').select('*').eq('client_id', id).order('created_at', { ascending: false });
     setAcessos(res.data || []);
-  }
+  }, [id, supabase]);
   function onAcessoChange(e: React.ChangeEvent<any>) {
     const { name, value } = e.target;
     setAcessoForm((prev) => ({ ...prev, [name]: value }));
@@ -829,10 +830,10 @@ export function ClientEditForm({ clientId }: { clientId?: string }) {
     await loadAcessos();
   }
 
-  async function loadServers() {
+  const loadServers = useCallback(async () => {
     const res = await supabase.from('servers').select('*').eq('client_id', id).order('created_at', { ascending: false });
     setServers(res.data || []);
-  }
+  }, [id, supabase]);
   function onServerChange(e: React.ChangeEvent<any>) {
     const { name, value } = e.target;
     setServerForm((prev) => ({ ...prev, [name]: value }));
@@ -985,26 +986,14 @@ export function ClientEditForm({ clientId }: { clientId?: string }) {
     }
   }
 
-  async function loadVMs() {
-    const res = await supabase.from('server_vms').select('*').in('server_id', servers.map(s => s.id)).order('created_at', { ascending: false });
-    // Note: if servers is empty initially, this might return empty. 
-    // Better to select based on client indirectly or just fetch all for client's servers if possible.
-    // Or just fetching all server_vms for now since we filter in UI. Ideally filters by server_ids of this client.
-
-    // Safer approach: Get all servers for this client first then VMs? 
-    // Actually, 'servers' state might not be populated yet when this runs in parallel.
-    // Let's do a join query or simple verify. 
-    // For now, let's just fetch all VMs that belong to any server of this client.
-    // Since we can't easily do a nested filter without join syntax which is tricky without types.
-    // Let's use the known server list if available, or fetch fresh.
-
+  const loadVMs = useCallback(async () => {
     // Alternative:
     const { data: srvs } = await supabase.from('servers').select('id').eq('client_id', id);
     if (!srvs?.length) { setVms([]); return; }
     const sids = srvs.map(x => x.id);
     const resVM = await supabase.from('server_vms').select('*').in('server_id', sids);
     setVms(resVM.data || []);
-  }
+  }, [id, supabase]);
 
   function toggleServerExpand(sid: string) {
     const newSet = new Set(expandedServers);

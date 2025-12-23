@@ -25,7 +25,7 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
   // Safe version reading
   let version = "v0.1.0";
   try {
-    const pkg = require("../../../package.json");
+    const pkg = require("../../package.json");
     version = pkg.version;
   } catch (e) {
     console.warn("RootLayout: Could not read package.json version");

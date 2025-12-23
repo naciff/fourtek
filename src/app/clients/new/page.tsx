@@ -1,5 +1,5 @@
-import EditClientPage from "@/app/clients/[id]/page";
+import { ClientEditForm } from "@/components/clients/ClientEditForm";
 
 export default function NewClientPage() {
-  return <EditClientPage clientId="new" />;
+  return <ClientEditForm clientId="new" />;
 }

@@ -31,7 +31,7 @@ export function CookieConsent() {
             </h3>
             <p className="text-sm text-gray-600 dark:text-gray-300 mb-6 leading-relaxed">
                 Utilizamos cookies para melhorar sua experiência, analisar o tráfego e oferecer conteúdo personalizado.
-                Clique em "Aceitar todos" para consentir de acordo com nossas políticas de <strong className="font-bold">Cookies</strong> e <strong className="font-bold">Privacidade</strong>.
+                Clique em &quot;Aceitar todos&quot; para consentir de acordo com nossas políticas de <strong className="font-bold">Cookies</strong> e <strong className="font-bold">Privacidade</strong>.
             </p>
 
             <div className="flex flex-col gap-3">
