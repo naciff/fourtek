@@ -124,6 +124,103 @@ export function ClientEditForm({ clientId }: { clientId?: string }) {
   const [selectedSistemas, setSelectedSistemas] = useState<string[]>([]);
   const [newSistemaName, setNewSistemaName] = useState<string>("");
 
+  /* Hoisted State & Loaders */
+  const prov74Items = [
+    "checkmk_inicial", "energia_estavel", "cpd", "switchH", "nobreak", "antivirus", "storage",
+    "checkmk", "link_internet", "impressora", "firewall", "backup_nuvem", "servidor_replicacao", "licencas_originais"
+  ];
+  const [showProv74Form, setShowProv74Form] = useState(false);
+  const [editingProv74Id, setEditingProv74Id] = useState<string | null>(null);
+  const [prov74History, setProv74History] = useState<any[]>([]);
+  const [prov74Form, setProv74Form] = useState({
+    situacao: 'Realizado',
+    data_hora: '',
+    classes: [] as string[],
+    itens: [] as string[],
+    imagem_url: '',
+    observacao: ''
+  });
+
+  const [relatoriosForm, setRelatoriosForm] = useState({
+    type: 'Relatório de Não Conformidade',
+    report_date: '',
+    version: '',
+    file_url: ''
+  });
+  const [showRelatoriosForm, setShowRelatoriosForm] = useState(false);
+  const [relatoriosHistory, setRelatoriosHistory] = useState<any[]>([]);
+  const [relatoriosLoading, setRelatoriosLoading] = useState(false);
+
+  const [dadosAdicionaisForm, setDadosAdicionaisForm] = useState({
+    type: 'Roteador',
+    quantity: 1,
+    brand_model: '',
+    has_external_battery: false,
+    has_generator: false,
+    observation: '',
+    image_url: ''
+  });
+  const [showDadosAdicionaisForm, setShowDadosAdicionaisForm] = useState(false);
+  const [dadosAdicionaisHistory, setDadosAdicionaisHistory] = useState<any[]>([]);
+  const [dadosAdicionaisLoading, setDadosAdicionaisLoading] = useState(false);
+
+  const [pcnForm, setPcnForm] = useState({
+    pcn: false,
+    politica_backup: false,
+    politica_ti: false,
+    encaminhado: false,
+    link: ''
+  });
+  const [showPcnForm, setShowPcnForm] = useState(false);
+  const [pcnHistory, setPcnHistory] = useState<any[]>([]);
+  const [pcnLoading, setPcnLoading] = useState(false);
+
+
+
+  const loadProv74 = useCallback(async () => {
+    const { data } = await supabase.from('prov74_checklist').select('*').eq('client_id', id).order('created_at', { ascending: false });
+    if (data) setProv74History(data);
+  }, [id, supabase]);
+
+  const loadRelatorios = useCallback(async () => {
+    const { data } = await supabase.from('client_reports').select('*').eq('client_id', id).order('created_at', { ascending: false });
+    if (data) setRelatoriosHistory(data);
+  }, [id, supabase]);
+
+  const loadDadosAdicionais = useCallback(async () => {
+    const { data } = await supabase.from('client_additional_data').select('*').eq('client_id', id).order('created_at', { ascending: false });
+    if (data) setDadosAdicionaisHistory(data);
+  }, [id, supabase]);
+
+  const loadPcn = useCallback(async () => {
+    const { data } = await supabase.from('client_pcn').select('*').eq('client_id', id).order('created_at', { ascending: false });
+    if (data) setPcnHistory(data);
+    loadDadosAdicionais();
+  }, [id, supabase, loadDadosAdicionais]);
+
+  const loadInvHist = useCallback(async () => {
+    const res = await supabase.from('inventario_historico').select('*').eq('client_id', id).order('created_at', { ascending: false });
+    setInvHist(res.data || []);
+  }, [id, supabase]);
+
+  const loadAcessos = useCallback(async () => {
+    const res = await supabase.from('dados_acesso').select('*').eq('client_id', id).order('created_at', { ascending: false });
+    setAcessos(res.data || []);
+  }, [id, supabase]);
+
+  const loadServers = useCallback(async () => {
+    const res = await supabase.from('servers').select('*').eq('client_id', id).order('created_at', { ascending: false });
+    setServers(res.data || []);
+  }, [id, supabase]);
+
+  const loadVMs = useCallback(async () => {
+    const { data: srvs } = await supabase.from('servers').select('id').eq('client_id', id);
+    if (!srvs?.length) { setVms([]); return; }
+    const sids = srvs.map(x => x.id);
+    const resVM = await supabase.from('server_vms').select('*').in('server_id', sids);
+    setVms(resVM.data || []);
+  }, [id, supabase]);
+
   function useUrlDiagnostics(url: string | undefined) {
     const [diag, setDiag] = useState<any>(null);
     useEffect(() => {
@@ -287,46 +384,9 @@ export function ClientEditForm({ clientId }: { clientId?: string }) {
     setForm((f: any) => ({ ...f, representatives_text: names }));
   }, [selectedReps, repsList]);
 
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  /* Checklist Prov 74 State */
-  const [showProv74Form, setShowProv74Form] = useState(false);
-  const [editingProv74Id, setEditingProv74Id] = useState<string | null>(null);
-  const [prov74History, setProv74History] = useState<any[]>([]);
-  const [prov74Form, setProv74Form] = useState({
-    situacao: 'Realizado',
-    data_hora: '',
-    classes: [] as string[],
-    itens: [] as string[],
-    imagem_url: '',
-    observacao: ''
-  });
 
-  const prov74Items = [
-    "checkmk_inicial", "energia_estavel", "cpd", "switchH", "nobreak", "antivirus", "storage",
-    "checkmk", "link_internet", "impressora", "firewall", "backup_nuvem", "servidor_replicacao", "licencas_originais"
-  ];
 
-  const loadProv74 = useCallback(async () => {
-    const { data } = await supabase.from('prov74_checklist').select('*').eq('client_id', id).order('created_at', { ascending: false });
-    if (data) setProv74History(data);
-  }, [id, supabase]);
 
-  /* Relatorios State */
-  const [relatoriosForm, setRelatoriosForm] = useState({
-    type: 'Relatório de Não Conformidade',
-    report_date: '',
-    version: '',
-    file_url: ''
-  });
-  const [showRelatoriosForm, setShowRelatoriosForm] = useState(false);
-  const [relatoriosHistory, setRelatoriosHistory] = useState<any[]>([]);
-  const [relatoriosLoading, setRelatoriosLoading] = useState(false);
-
-  const loadRelatorios = useCallback(async () => {
-    const { data } = await supabase.from('client_reports').select('*').eq('client_id', id).order('created_at', { ascending: false });
-    if (data) setRelatoriosHistory(data);
-  }, [id, supabase]);
 
   async function onRelatoriosSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -353,24 +413,7 @@ export function ClientEditForm({ clientId }: { clientId?: string }) {
     setRelatoriosLoading(false);
   }
 
-  /* Dados Adicionais State */
-  const [dadosAdicionaisForm, setDadosAdicionaisForm] = useState({
-    type: 'Roteador',
-    quantity: 1,
-    brand_model: '',
-    has_external_battery: false,
-    has_generator: false,
-    observation: '',
-    image_url: ''
-  });
-  const [showDadosAdicionaisForm, setShowDadosAdicionaisForm] = useState(false);
-  const [dadosAdicionaisHistory, setDadosAdicionaisHistory] = useState<any[]>([]);
-  const [dadosAdicionaisLoading, setDadosAdicionaisLoading] = useState(false);
 
-  const loadDadosAdicionais = useCallback(async () => {
-    const { data } = await supabase.from('client_additional_data').select('*').eq('client_id', id).order('created_at', { ascending: false });
-    if (data) setDadosAdicionaisHistory(data);
-  }, [id, supabase]);
 
   async function onDadosAdicionaisSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -409,24 +452,7 @@ export function ClientEditForm({ clientId }: { clientId?: string }) {
     }
     setDadosAdicionaisLoading(false);
   }
-  const [pcnForm, setPcnForm] = useState({
-    pcn: false,
-    politica_backup: false,
-    politica_ti: false,
-    encaminhado: false,
-    link: ''
-  });
-  const [showPcnForm, setShowPcnForm] = useState(false);
-  const [pcnHistory, setPcnHistory] = useState<any[]>([]);
-  const [pcnLoading, setPcnLoading] = useState(false);
 
-  const loadPcn = useCallback(async () => {
-    const { data } = await supabase.from('client_pcn').select('*').eq('client_id', id).order('created_at', { ascending: false });
-    if (data) setPcnHistory(data);
-
-    // Load Additional Data
-    loadDadosAdicionais();
-  }, [id, supabase, loadDadosAdicionais]);
 
   async function onPcnSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -715,10 +741,7 @@ export function ClientEditForm({ clientId }: { clientId?: string }) {
     router.replace("/clients");
   }
 
-  const loadInvHist = useCallback(async () => {
-    const res = await supabase.from('inventario_historico').select('*').eq('client_id', id).order('created_at', { ascending: false });
-    setInvHist(res.data || []);
-  }, [id, supabase]);
+
 
   async function onInvHistSubmit(e: FormEvent) {
     e.preventDefault();
@@ -774,10 +797,7 @@ export function ClientEditForm({ clientId }: { clientId?: string }) {
     setShowInvForm(false);
   }
 
-  const loadAcessos = useCallback(async () => {
-    const res = await supabase.from('dados_acesso').select('*').eq('client_id', id).order('created_at', { ascending: false });
-    setAcessos(res.data || []);
-  }, [id, supabase]);
+
   function onAcessoChange(e: React.ChangeEvent<any>) {
     const { name, value } = e.target;
     setAcessoForm((prev) => ({ ...prev, [name]: value }));
@@ -830,10 +850,7 @@ export function ClientEditForm({ clientId }: { clientId?: string }) {
     await loadAcessos();
   }
 
-  const loadServers = useCallback(async () => {
-    const res = await supabase.from('servers').select('*').eq('client_id', id).order('created_at', { ascending: false });
-    setServers(res.data || []);
-  }, [id, supabase]);
+
   function onServerChange(e: React.ChangeEvent<any>) {
     const { name, value } = e.target;
     setServerForm((prev) => ({ ...prev, [name]: value }));
@@ -986,14 +1003,7 @@ export function ClientEditForm({ clientId }: { clientId?: string }) {
     }
   }
 
-  const loadVMs = useCallback(async () => {
-    // Alternative:
-    const { data: srvs } = await supabase.from('servers').select('id').eq('client_id', id);
-    if (!srvs?.length) { setVms([]); return; }
-    const sids = srvs.map(x => x.id);
-    const resVM = await supabase.from('server_vms').select('*').in('server_id', sids);
-    setVms(resVM.data || []);
-  }, [id, supabase]);
+
 
   function toggleServerExpand(sid: string) {
     const newSet = new Set(expandedServers);
@@ -2060,7 +2070,7 @@ export function ClientEditForm({ clientId }: { clientId?: string }) {
                       setNewSistemaName("");
                       alert('Sistema cadastrado!');
                     } else {
-                      alert('Erro ao cadastrar: ' + error.message);
+                      alert('Erro ao cadastrar: ' + (error?.message || 'Erro desconhecido'));
                     }
                     setLoading(false);
                   }}
