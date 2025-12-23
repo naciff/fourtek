@@ -68,3 +68,19 @@ table.table-zebra tbody tr:nth-child(odd) {
 table.table-zebra tbody tr:nth-child(even) {
   background-color: #ededed;
 }
+
+.dark table.table-zebra tbody tr:nth-child(odd) {
+  @apply bg-gray-800/100;
+}
+
+.dark table.table-zebra tbody tr:nth-child(even) {
+  @apply bg-gray-800/50;
+}
+
+.dark thead {
+  @apply bg-gray-950;
+}
+
+.dark table {
+  @apply text-gray-300;
+}

@@ -19,11 +19,15 @@ export default function LoginPage() {
     e.preventDefault();
     setError(null);
     setLoading(true);
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    const { data: auth, error: loginError } = await supabase.auth.signInWithPassword({ email, password });
     setLoading(false);
-    if (error) {
-      setError(error.message);
+    if (loginError) {
+      setError(loginError.message);
       return;
+    }
+    if (auth?.user) {
+      // Update last_login in users table (parallel, non-blocking if possible)
+      await supabase.from("users").update({ last_login: new Date().toISOString() }).eq("user_id", auth.user.id);
     }
     router.replace("/dashboard");
     router.refresh();

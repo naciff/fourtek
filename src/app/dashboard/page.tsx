@@ -1,6 +1,7 @@
 import { supabaseServer } from "@/lib/supabase-server";
 import ClientsMap from "./ClientsMap";
 import DashboardInteractive from "./DashboardInteractive";
+import CountUp from "@/components/ui/CountUp";
 
 function Pie({ data, colors, labels }: { data: number[]; colors: string[]; labels: string[] }) {
   const total = data.reduce((a, b) => a + b, 0) || 1;
@@ -167,27 +168,33 @@ export default async function DashboardPage() {
       </div>
 
       <div className="grid gap-4 sm:grid-cols-3 mt-4">
-        <div className="relative rounded-lg border border-gray-300 bg-white px-4 py-4 pt-5 dark:bg-gray-800 dark:border-gray-700">
+        <div className="relative rounded-lg border border-gray-300 bg-white px-4 py-4 pt-5 dark:bg-gray-800 dark:border-gray-600">
           <div className="absolute top-0 left-2 -translate-y-1/2 bg-white px-1 text-xs text-brand-green-700 dark:bg-gray-800 dark:text-brand-green-500">
             Valor Total de Entradas
           </div>
-          <div className="text-2xl font-bold text-brand-green-800 dark:text-brand-green-400">{Number(totalContracts).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}</div>
+          <div className="text-2xl font-bold text-brand-green-800 dark:text-brand-green-400">
+            <CountUp end={Number(totalContracts)} currency />
+          </div>
         </div>
-        <div className="relative rounded-lg border border-gray-300 bg-white px-4 py-4 pt-5 dark:bg-gray-800 dark:border-gray-700">
+        <div className="relative rounded-lg border border-gray-300 bg-white px-4 py-4 pt-5 dark:bg-gray-800 dark:border-gray-600">
           <div className="absolute top-0 left-2 -translate-y-1/2 bg-white px-1 text-xs text-brand-green-700 dark:bg-gray-800 dark:text-brand-green-500">
             Valor Total Backup (Cloud)
           </div>
-          <div className="text-2xl font-bold text-brand-green-800 dark:text-brand-green-400">{Number(totalCloud).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}</div>
+          <div className="text-2xl font-bold text-brand-green-800 dark:text-brand-green-400">
+            <CountUp end={Number(totalCloud)} currency />
+          </div>
         </div>
-        <div className="relative rounded-lg border border-gray-300 bg-white px-4 py-4 pt-5 dark:bg-gray-800 dark:border-gray-700">
+        <div className="relative rounded-lg border border-gray-300 bg-white px-4 py-4 pt-5 dark:bg-gray-800 dark:border-gray-600">
           <div className="absolute top-0 left-2 -translate-y-1/2 bg-white px-1 text-xs text-red-600 dark:bg-gray-800 dark:text-red-500">
             Total de Investimento
           </div>
-          <div className="text-2xl font-bold text-red-700 dark:text-red-400">{Number(totalInventory).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}</div>
+          <div className="text-2xl font-bold text-red-700 dark:text-red-400">
+            <CountUp end={Number(totalInventory)} currency />
+          </div>
         </div>
       </div>
       <DashboardInteractive clients={clientsForInteractive} systems={{ data: sistemasData, labels: sistemasLabels }} />
-      <div className="relative rounded-lg border border-gray-300 bg-white px-4 py-4 pt-5 dark:bg-gray-800 dark:border-gray-700">
+      <div className="relative rounded-lg border border-gray-300 bg-white px-4 py-4 pt-5 dark:bg-gray-800 dark:border-gray-600">
         <div className="absolute top-0 left-2 -translate-y-1/2 bg-white px-1 text-xs text-brand-green-700 dark:bg-gray-800 dark:text-brand-green-500">
           Mapa de Clientes
         </div>

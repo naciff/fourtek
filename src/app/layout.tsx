@@ -4,7 +4,10 @@ import Link from "next/link";
 import SidebarCollapse from "@/components/layout/SidebarCollapse";
 import SidebarMenu from "@/components/layout/SidebarMenu";
 import { DateDisplay, FullscreenToggle, NotificationBell, SettingsDrawer, ThemeToggle, UserDropdown } from "@/components/layout/HeaderComponents";
+import { LayoutProvider } from "@/components/layout/LayoutContext";
+import { AppLayout } from "@/components/layout/AppLayout";
 import { supabaseServer } from "@/lib/supabase-server";
+import { CookieConsent } from "@/components/ui/CookieConsent";
 import { Inter } from "next/font/google";
 const inter = Inter({ subsets: ["latin"] });
 
@@ -12,7 +15,7 @@ export const dynamic = "force-dynamic";
 export const metadata = {
   title: "FourTek Sync",
   icons: {
-    icon: "/fourtek-symbol.svg",
+    icon: "/favicon.png",
   },
 };
 
@@ -23,7 +26,7 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
   let version = "v0.1.0";
   try {
     const pkg = require("../../../package.json");
-    version = "v" + pkg.version;
+    version = pkg.version;
   } catch (e) {
     console.warn("RootLayout: Could not read package.json version");
   }
@@ -87,54 +90,20 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
   return (
     <html lang="pt-br">
       <body className={`${inter.className} min-h-screen antialiased`}>
-        <div className={`min-h-screen grid grid-cols-1 ${hasSession ? 'grid-cols-[auto_1fr] md:grid-cols-[auto_1fr]' : 'md:grid-cols-1'}`}>
-          {hasSession && (
-            <aside className="flex flex-col sticky top-0 h-screen overflow-auto bg-[#f5f5f5] dark:bg-gray-800 text-gray-900 dark:text-gray-100 app-sidebar border-r border-black/10 dark:border-white/10 transition-all duration-300 ease-in-out">
-              <div className="px-4 py-4 border-b border-black/10 dark:border-white/10 flex items-center justify-center">
-                <Link href="/" className="flex items-center">
-                  <img src={logoSymbolSrc} alt="FourTek" className="h-8" />
-                </Link>
-              </div>
-              <nav className="flex-1">
-                <SidebarMenu />
-              </nav>
-              <div className="p-4 border-t border-black/10 dark:border-white/10 flex justify-center">
-                <SidebarCollapse />
-              </div>
-            </aside>
-          )}
-          <div className="flex flex-col">
-            {hasSession && (
-              <header className="hidden md:block border-b border-black/10 dark:border-white/10 bg-[#f5f5f5] dark:bg-gray-800">
-                <div className="flex items-center justify-between px-4 py-3">
-                  <div className="flex items-center">
-                    <img src={logoHeaderSrc} alt="FourTek" className="h-8" />
-                  </div>
-                  <div className="flex items-center gap-4 text-gray-800 dark:text-gray-200">
-                    <DateDisplay />
-                    <div className="flex items-center gap-2">
-                      <FullscreenToggle />
-                      <NotificationBell count={5} />
-                    </div>
-                    <ThemeToggle />
-                    <div className="h-8 w-px bg-black/10 dark:bg-white/10 mx-1" />
-                    <UserDropdown displayName={displayName} avatarUrl={avatar} />
-                  </div>
-                </div>
-              </header>
-            )}
-            {/* header móvel removido para usar o sidebar também em mobile */}
-            <main className={hasSession ? "w-full px-4 py-3 flex-1 bg-white dark:bg-gray-900" : "w-full flex-1 dark:bg-gray-900"}>{children}</main>
-            {hasSession && (
-              <footer className="relative px-4 py-2 text-xs text-gray-600 dark:text-gray-400 bg-[#f5f5f5] dark:bg-gray-800 border-t border-black/10 dark:border-white/10 flex items-center justify-center">
-                <span>@2026 Fourtek Soluções em Ti</span>
-                <span className="absolute right-4">Versão {version.substring(1)}</span>
-              </footer>
-            )}
-            {hasSession && <SettingsDrawer />}
-            {/* navegação móvel inferior removida */}
-          </div>
-        </div>
+        <LayoutProvider>
+          <AppLayout
+            hasSession={hasSession}
+            logoSymbolSrc={logoSymbolSrc}
+            logoHeaderSrc={logoHeaderSrc}
+            displayName={displayName}
+            avatar={avatar}
+            userEmail={user?.email}
+            version={version}
+          >
+            {children}
+            <CookieConsent />
+          </AppLayout>
+        </LayoutProvider>
       </body>
     </html>
   );

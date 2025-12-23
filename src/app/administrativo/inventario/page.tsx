@@ -29,8 +29,8 @@ export default function InventarioPage() {
   function maskDateBR(v: string) {
     const d = v.replace(/\D/g, "").slice(0, 8);
     if (d.length <= 2) return d;
-    if (d.length <= 4) return `${d.slice(0,2)}/${d.slice(2)}`;
-    return `${d.slice(0,2)}/${d.slice(2,4)}/${d.slice(4,8)}`;
+    if (d.length <= 4) return `${d.slice(0, 2)}/${d.slice(2)}`;
+    return `${d.slice(0, 2)}/${d.slice(2, 4)}/${d.slice(4, 8)}`;
   }
   function brToISO(v: string) {
     if (/^\d{4}-\d{2}-\d{2}$/.test(v)) return v;
@@ -40,7 +40,7 @@ export default function InventarioPage() {
   }
   function isoToBR(v: any) {
     const s = String(v || "");
-    if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return `${s.slice(8,10)}/${s.slice(5,7)}/${s.slice(0,4)}`;
+    if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return `${s.slice(8, 10)}/${s.slice(5, 7)}/${s.slice(0, 4)}`;
     return s;
   }
   function numBR(v: any) {
@@ -80,7 +80,7 @@ export default function InventarioPage() {
       setError(err?.message || "Falha ao carregar inventário");
     }
   }
-  useEffect(()=>{ void load(); }, [filterGroup]);
+  useEffect(() => { void load(); }, [filterGroup]);
 
   function onChange(e: React.ChangeEvent<any>) {
     const name = e.target.name;
@@ -88,7 +88,7 @@ export default function InventarioPage() {
     if (name === "data_compra") val = e.target.value;
     if (name === "qtd") val = String(val).replace(/[^0-9]/g, "");
     if (name === "valor") val = String(val).replace(/[^0-9.,]/g, "");
-    setForm((f)=> ({ ...f, [name]: val }));
+    setForm((f) => ({ ...f, [name]: val }));
   }
 
   async function onSubmit(e: FormEvent) {
@@ -102,7 +102,7 @@ export default function InventarioPage() {
     const itemNome = form.item.trim();
     const qtdNum = Number(form.qtd || "0");
     const valorNum = numBR(form.valor);
-    const dataISO = brToISO(form.data_compra || new Date().toISOString().slice(0,10));
+    const dataISO = brToISO(form.data_compra || new Date().toISOString().slice(0, 10));
     if (!codigo) { setLoading(false); setError("Informe o código do item"); return; }
     if (!itemNome) { setLoading(false); setError("Informe o nome do item"); return; }
     if (!dataISO) { setLoading(false); setError("Data da compra inválida (DD/MM/AAAA)"); return; }
@@ -185,45 +185,45 @@ export default function InventarioPage() {
 
   return (
     <div className="grid gap-4 p-4">
-      <h1 className="text-2xl font-semibold text-brand-blue-800">Inventário</h1>
+      <h1 className="text-2xl font-semibold text-brand-blue-800 dark:text-brand-blue-400">Inventário</h1>
       <div className="flex flex-wrap items-center gap-2">
-        <input placeholder="Pesquisar item..." value={itemQuery} onChange={(e)=> setItemQuery(e.target.value)} className="rounded border px-3 py-2 w-full sm:w-64" />
-        <select value={filterGroup} onChange={(e)=> setFilterGroup(e.target.value)} className="rounded border px-3 py-2">
+        <input placeholder="Pesquisar item..." value={itemQuery} onChange={(e) => setItemQuery(e.target.value)} className="rounded border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2 w-full sm:w-64 text-sm text-gray-900 dark:text-gray-100 focus:ring-1 focus:ring-brand-green-600 outline-none" />
+        <select value={filterGroup} onChange={(e) => setFilterGroup(e.target.value)} className="rounded border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-gray-100 focus:ring-1 focus:ring-brand-green-600 outline-none">
           <option value="">Todos</option>
           <option>Ferramentas</option>
           <option>Equipamento Informática</option>
         </select>
-        <button onClick={claimOrphanItems} className="rounded bg-brand-blue-700 text-white px-3 py-2 text-sm">Assumir itens antigos</button>
-        <button onClick={()=> { const maxCode = items.reduce((m:number, r:any)=> Math.max(m, Number(String(r?.codigo||"").replace(/\D/g, "")) || 0), 0); setEditId(null); setForm({ codigo: String(maxCode+1), data_compra: new Date().toISOString().slice(0,10), grupo: "Ferramentas", item: "", qtd: "1", marca: "", modelo: "", valor: "0", nota_fiscal: "", observacao: "" }); setShowForm(true); }} className="rounded bg-brand-green-600 text-white px-3 py-2 text-sm">Novo item</button>
+        <button onClick={claimOrphanItems} className="rounded bg-brand-blue-700 text-white px-3 py-2 text-sm hover:bg-brand-blue-800 transition-colors">Assumir itens antigos</button>
+        <button onClick={() => { const maxCode = items.reduce((m: number, r: any) => Math.max(m, Number(String(r?.codigo || "").replace(/\D/g, "")) || 0), 0); setEditId(null); setForm({ codigo: String(maxCode + 1), data_compra: new Date().toISOString().slice(0, 10), grupo: "Ferramentas", item: "", qtd: "1", marca: "", modelo: "", valor: "0", nota_fiscal: "", observacao: "" }); setShowForm(true); }} className="rounded bg-brand-green-600 text-white px-3 py-2 text-sm hover:bg-brand-green-700 transition-colors">Novo item</button>
         {error && <span className="text-sm text-red-600">{error}</span>}
       </div>
 
       {showForm ? (
-        <form className="grid sm:grid-cols-2 gap-3 bg-white rounded-lg border p-4" onSubmit={onSubmit}>
-          <label className="grid gap-1"><span className="text-sm">Código</span><input name="codigo" value={form.codigo} onChange={onChange} className="rounded border px-3 py-2" /></label>
-          <label className="grid gap-1"><span className="text-sm">Data da Compra</span><input lang="pt-BR" type="date" name="data_compra" value={form.data_compra} onChange={onChange} className="rounded border px-3 py-2" /></label>
-          <label className="grid gap-1"><span className="text-sm">Grupo</span>
-            <select name="grupo" value={form.grupo} onChange={onChange} className="rounded border px-3 py-2">
+        <form className="grid sm:grid-cols-2 gap-4 bg-white dark:bg-gray-800 rounded-lg border dark:border-gray-700 p-6 shadow-xl animate-in fade-in zoom-in-95 duration-200" onSubmit={onSubmit}>
+          <label className="grid gap-1"><span className="text-sm font-medium text-gray-700 dark:text-gray-300">Código</span><input name="codigo" value={form.codigo} onChange={onChange} className="rounded border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 px-3 py-2 text-gray-900 dark:text-gray-100 outline-none focus:ring-1 focus:ring-brand-green-600" /></label>
+          <label className="grid gap-1"><span className="text-sm font-medium text-gray-700 dark:text-gray-300">Data da Compra</span><input lang="pt-BR" type="date" name="data_compra" value={form.data_compra} onChange={onChange} className="rounded border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 px-3 py-2 text-gray-900 dark:text-gray-100 outline-none focus:ring-1 focus:ring-brand-green-600" /></label>
+          <label className="grid gap-1"><span className="text-sm font-medium text-gray-700 dark:text-gray-300">Grupo</span>
+            <select name="grupo" value={form.grupo} onChange={onChange} className="rounded border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 px-3 py-2 text-gray-900 dark:text-gray-100 outline-none focus:ring-1 focus:ring-brand-green-600">
               <option>Ferramentas</option>
               <option>Equipamento Informática</option>
             </select>
           </label>
-          <label className="grid gap-1"><span className="text-sm">Qtd</span><input name="qtd" value={form.qtd} onChange={onChange} className="rounded border px-3 py-2" /></label>
-          <label className="grid gap-1 sm:col-span-2"><span className="text-sm">Item</span><input name="item" value={form.item} onChange={onChange} className="rounded border px-3 py-2" /></label>
-          <label className="grid gap-1"><span className="text-sm">Marca</span><input name="marca" value={form.marca} onChange={onChange} className="rounded border px-3 py-2" /></label>
-          <label className="grid gap-1"><span className="text-sm">Modelo</span><input name="modelo" value={form.modelo} onChange={onChange} className="rounded border px-3 py-2" /></label>
-          <label className="grid gap-1"><span className="text-sm">Valor</span><input type="number" step="0.01" name="valor" value={form.valor} onChange={onChange} className="rounded border px-3 py-2" /></label>
-          <label className="grid gap-1"><span className="text-sm">Nota Fiscal</span><input name="nota_fiscal" value={form.nota_fiscal} onChange={onChange} className="rounded border px-3 py-2" /></label>
-          <label className="grid gap-1 sm:col-span-2"><span className="text-sm">Observação</span><input name="observacao" value={form.observacao} onChange={onChange} className="rounded border px-3 py-2" /></label>
-          <div className="sm:col-span-2 flex gap-2">
-            <button disabled={loading} className="rounded bg-brand-green-600 text-white px-4 py-2">{loading? (editId?"Atualizando...":"Salvando...") : (editId?"Atualizar":"Salvar")}</button>
-            <button type="button" className="rounded bg-gray-200 text-gray-800 px-4 py-2" onClick={()=> { setShowForm(false); setEditId(null); }}>Cancelar</button>
+          <label className="grid gap-1"><span className="text-sm font-medium text-gray-700 dark:text-gray-300">Qtd</span><input name="qtd" value={form.qtd} onChange={onChange} className="rounded border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 px-3 py-2 text-gray-900 dark:text-gray-100 outline-none focus:ring-1 focus:ring-brand-green-600" /></label>
+          <label className="grid gap-1 sm:col-span-2"><span className="text-sm font-medium text-gray-700 dark:text-gray-300">Item</span><input name="item" value={form.item} onChange={onChange} className="rounded border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 px-3 py-2 text-gray-900 dark:text-gray-100 outline-none focus:ring-1 focus:ring-brand-green-600" /></label>
+          <label className="grid gap-1"><span className="text-sm font-medium text-gray-700 dark:text-gray-300">Marca</span><input name="marca" value={form.marca} onChange={onChange} className="rounded border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 px-3 py-2 text-gray-900 dark:text-gray-100 outline-none focus:ring-1 focus:ring-brand-green-600" /></label>
+          <label className="grid gap-1"><span className="text-sm font-medium text-gray-700 dark:text-gray-300">Modelo</span><input name="modelo" value={form.modelo} onChange={onChange} className="rounded border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 px-3 py-2 text-gray-900 dark:text-gray-100 outline-none focus:ring-1 focus:ring-brand-green-600" /></label>
+          <label className="grid gap-1"><span className="text-sm font-medium text-gray-700 dark:text-gray-300">Valor</span><input type="number" step="0.01" name="valor" value={form.valor} onChange={onChange} className="rounded border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 px-3 py-2 text-gray-900 dark:text-gray-100 outline-none focus:ring-1 focus:ring-brand-green-600" /></label>
+          <label className="grid gap-1"><span className="text-sm font-medium text-gray-700 dark:text-gray-300">Nota Fiscal</span><input name="nota_fiscal" value={form.nota_fiscal} onChange={onChange} className="rounded border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 px-3 py-2 text-gray-900 dark:text-gray-100 outline-none focus:ring-1 focus:ring-brand-green-600" /></label>
+          <label className="grid gap-1 sm:col-span-2"><span className="text-sm font-medium text-gray-700 dark:text-gray-300">Observação</span><input name="observacao" value={form.observacao} onChange={onChange} className="rounded border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 px-3 py-2 text-gray-900 dark:text-gray-100 outline-none focus:ring-1 focus:ring-brand-green-600" /></label>
+          <div className="sm:col-span-2 flex gap-2 pt-2 border-t dark:border-gray-700">
+            <button disabled={loading} className="rounded bg-brand-green-600 text-white px-6 py-2 font-bold hover:bg-brand-green-700 transition-colors disabled:opacity-50">{loading ? (editId ? "Atualizando..." : "Salvando...") : (editId ? "Atualizar" : "Salvar")}</button>
+            <button type="button" className="rounded bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 px-6 py-2 font-bold hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors" onClick={() => { setShowForm(false); setEditId(null); }}>Cancelar</button>
           </div>
         </form>
       ) : null}
 
       {(() => {
-        const base = items.filter((x:any)=> String(x?.item||"").toLowerCase().includes(String(itemQuery||"").toLowerCase()));
+        const base = items.filter((x: any) => String(x?.item || "").toLowerCase().includes(String(itemQuery || "").toLowerCase()));
         if (!base.length) return null;
         const byGroup: Record<string, number> = {};
         for (const r of base) {
@@ -233,37 +233,37 @@ export default function InventarioPage() {
         return (
           <div className="flex flex-wrap items-center gap-2">
             {Object.entries(byGroup).map(([g, total]) => (
-              <div key={`sum-${g}`} className="inline-flex items-center rounded bg-brand-green-50 border px-2 py-1 text-sm">
-                <span className="font-medium text-brand-blue-800">{g}</span>
-                <span className="ml-2 rounded bg-gray-200 px-2 py-0.5 text-xs text-gray-800">{total.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}</span>
+              <div key={`sum-${g}`} className="inline-flex items-center rounded bg-brand-green-50 dark:bg-brand-green-900/20 border border-brand-green-100 dark:border-brand-green-800/50 px-2 py-1 text-sm shadow-sm">
+                <span className="font-bold text-brand-blue-800 dark:text-brand-blue-400">{g}</span>
+                <span className="ml-2 rounded bg-gray-200 dark:bg-gray-700 px-2 py-0.5 text-xs text-gray-800 dark:text-gray-200 font-bold">{total.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}</span>
               </div>
             ))}
           </div>
         );
       })()}
 
-      <div className="rounded-lg border bg-white overflow-hidden">
-        <table className="w-full text-sm">
-          <thead className="bg-[#2C3E50] text-white"><tr><th scope="col" className="text-left p-2">Código</th><th scope="col" className="text-left p-2">Data da Compra</th><th scope="col" className="text-left p-2">Item</th><th scope="col" className="text-right p-2">Qtd</th><th scope="col" className="text-right p-2">Valor</th><th scope="col" className="text-left p-2">Ações</th></tr></thead>
+      <div className="rounded-lg border bg-white dark:bg-gray-800 dark:border-gray-700 overflow-hidden shadow-sm">
+        <table className="w-full text-sm text-gray-700 dark:text-gray-300">
+          <thead className="bg-[#2C3E50] dark:bg-gray-950 text-white"><tr><th scope="col" className="text-left p-2">Código</th><th scope="col" className="text-left p-2">Data da Compra</th><th scope="col" className="text-left p-2">Item</th><th scope="col" className="text-right p-2">Qtd</th><th scope="col" className="text-right p-2">Valor</th><th scope="col" className="text-left p-2">Ações</th></tr></thead>
           <tbody>
             {(() => {
-              const base = items.filter((x:any)=> String(x?.item||"").toLowerCase().includes(String(itemQuery||"").toLowerCase()));
-              const sortedLocal = [...base].sort((a:any,b:any)=> String(a?.codigo||"").localeCompare(String(b?.codigo||""), 'pt-BR', { numeric:true, sensitivity:'base' }));
-              const startIdx = (page-1)*pageSize;
-              const pageRows = sortedLocal.slice(startIdx, startIdx+pageSize);
-              return pageRows.length ? pageRows.map((it:any, idx:number)=> (
-                <tr key={String(it.id)} className={`${idx%2===0?'bg-white':'bg-[#F9F9F9]'} border-t border-[#F5F5F5]`}>
-                  <td className="p-2">{it.codigo}</td>
+              const base = items.filter((x: any) => String(x?.item || "").toLowerCase().includes(String(itemQuery || "").toLowerCase()));
+              const sortedLocal = [...base].sort((a: any, b: any) => String(a?.codigo || "").localeCompare(String(b?.codigo || ""), 'pt-BR', { numeric: true, sensitivity: 'base' }));
+              const startIdx = (page - 1) * pageSize;
+              const pageRows = sortedLocal.slice(startIdx, startIdx + pageSize);
+              return pageRows.length ? pageRows.map((it: any, idx: number) => (
+                <tr key={String(it.id)} className={`${idx % 2 === 0 ? 'bg-white dark:bg-gray-800/40' : 'bg-[#F9F9F9] dark:bg-gray-800/60'} border-t border-[#F5F5F5] dark:border-gray-700/50 hover:bg-black/5 dark:hover:bg-white/5 transition-colors`}>
+                  <td className="p-2 font-medium">{it.codigo}</td>
                   <td className="p-2">{isoToBR(it.data_compra)}</td>
                   <td className="p-2">{it.item}</td>
                   <td className="p-2 text-right">{it.qtd}</td>
-                  <td className="p-2 text-right font-bold">{valorFmt(it.valor)}</td>
+                  <td className="p-2 text-right font-bold text-gray-900 dark:text-gray-100">{valorFmt(it.valor)}</td>
                   <td className="p-2 flex gap-2">
-                    <button className="text-gray-400" title="Editar" aria-label="Editar" onClick={()=> { setEditId(String(it.id)); setForm({ codigo: it.codigo||"", data_compra: String(it.data_compra||"").slice(0,10), grupo: it.grupo||"Ferramentas", item: it.item||"", qtd: String(it.qtd||"1"), marca: it.marca||"", modelo: it.modelo||"", valor: String(it.valor||"0"), nota_fiscal: it.nota_fiscal||"", observacao: it.observacao||"" }); setShowForm(true); }}>
-                      <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25z"/><path d="M20.71 7.04a1.003 1.003 0 0 0 0-1.42l-2.34-2.34a1.003 1.003 0 0 0-1.42 0l-1.83 1.83 3.75 3.75 1.84-1.82z"/></svg>
+                    <button className="text-gray-400 hover:text-brand-blue-600 dark:hover:text-brand-blue-400 transition-colors" title="Editar" aria-label="Editar" onClick={() => { setEditId(String(it.id)); setForm({ codigo: it.codigo || "", data_compra: String(it.data_compra || "").slice(0, 10), grupo: it.grupo || "Ferramentas", item: it.item || "", qtd: String(it.qtd || "1"), marca: it.marca || "", modelo: it.modelo || "", valor: String(it.valor || "0"), nota_fiscal: it.nota_fiscal || "", observacao: it.observacao || "" }); setShowForm(true); }}>
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25z" /><path d="M20.71 7.04a1.003 1.003 0 0 0 0-1.42l-2.34-2.34a1.003 1.003 0 0 0-1.42 0l-1.83 1.83 3.75 3.75 1.84-1.82z" /></svg>
                     </button>
-                    <button className="text-gray-400" title="Excluir" aria-label="Excluir" onClick={()=> onDelete(String(it.id))}>
-                      <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M6 7h12l-1 14H7L6 7z"/><path d="M9 4h6l1 2H8l1-2z"/></svg>
+                    <button className="text-gray-400 hover:text-red-600 dark:hover:text-red-400 transition-colors" title="Excluir" aria-label="Excluir" onClick={() => onDelete(String(it.id))}>
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M6 7h12l-1 14H7L6 7z" /><path d="M9 4h6l1 2H8l1-2z" /></svg>
                     </button>
                   </td>
                 </tr>
@@ -274,15 +274,15 @@ export default function InventarioPage() {
           </tbody>
           <tfoot>
             {(() => {
-              const base = items.filter((x:any)=> String(x?.item||"").toLowerCase().includes(String(itemQuery||"").toLowerCase()));
-              const sortedLocal = [...base].sort((a:any,b:any)=> String(a?.codigo||"").localeCompare(String(b?.codigo||""), 'pt-BR', { numeric:true, sensitivity:'base' }));
-              const startIdx = (page-1)*pageSize;
-              const pageRows = sortedLocal.slice(startIdx, startIdx+pageSize);
-              const total = pageRows.reduce((sum:number, it:any)=> sum + valorNumero(it?.valor), 0);
+              const base = items.filter((x: any) => String(x?.item || "").toLowerCase().includes(String(itemQuery || "").toLowerCase()));
+              const sortedLocal = [...base].sort((a: any, b: any) => String(a?.codigo || "").localeCompare(String(b?.codigo || ""), 'pt-BR', { numeric: true, sensitivity: 'base' }));
+              const startIdx = (page - 1) * pageSize;
+              const pageRows = sortedLocal.slice(startIdx, startIdx + pageSize);
+              const total = pageRows.reduce((sum: number, it: any) => sum + valorNumero(it?.valor), 0);
               return (
-                <tr className="border-t bg-brand-green-100">
+                <tr className="border-t dark:border-gray-700 bg-brand-green-100/50 dark:bg-brand-green-900/40">
                   <td className="p-2" colSpan={4}></td>
-                  <td className="p-2 font-bold text-brand-green-800 text-right">{total.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}</td>
+                  <td className="p-2 font-bold text-brand-green-800 dark:text-brand-green-400 text-right">{total.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}</td>
                   <td className="p-2"></td>
                 </tr>
               );
@@ -291,14 +291,16 @@ export default function InventarioPage() {
         </table>
       </div>
 
-      <div className="flex items-center gap-2 mt-3">
-        <span className="text-sm text-gray-700">Itens por página:</span>
-        {[20,50,100].map((n)=> (
-          <button key={`ps-${n}`} onClick={()=> { setPageSize(n); setPage(1); }} className={`rounded px-2 py-1 text-sm ${pageSize===n? 'bg-brand-green-600 text-white':'bg-gray-200 text-gray-800'}`}>{n}</button>
+      <div className="flex items-center gap-2 mt-3 flex-wrap">
+        <span className="text-sm text-gray-700 dark:text-gray-400">Itens por página:</span>
+        {[20, 50, 100].map((n) => (
+          <button key={`ps-${n}`} onClick={() => { setPageSize(n); setPage(1); }} className={`rounded px-3 py-1 text-sm transition-all ${pageSize === n ? 'bg-brand-green-600 text-white shadow-md font-bold' : 'bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 hover:bg-gray-300 dark:hover:bg-gray-600'}`}>{n}</button>
         ))}
-        <span className="ml-4 text-sm text-gray-700">Página {page} de {totalPages}</span>
-        <button className="ml-2 rounded bg-gray-200 text-gray-800 px-2 py-1 text-sm" onClick={()=> setPage(Math.max(1, page-1))}>Anterior</button>
-        <button className="rounded bg-gray-200 text-gray-800 px-2 py-1 text-sm" onClick={()=> setPage(Math.min(totalPages, page+1))}>Próxima</button>
+        <span className="ml-4 text-sm text-gray-700 dark:text-gray-400 font-medium">Página {page} de {totalPages}</span>
+        <div className="flex gap-1 ml-auto">
+          <button className="rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 px-4 py-1.5 text-sm hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors" onClick={() => setPage(Math.max(1, page - 1))}>Anterior</button>
+          <button className="rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 px-4 py-1.5 text-sm hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors" onClick={() => setPage(Math.min(totalPages, page + 1))}>Próxima</button>
+        </div>
       </div>
     </div>
   );

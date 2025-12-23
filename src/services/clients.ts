@@ -28,20 +28,42 @@ export async function getClients(
     if (situation) countQuery = countQuery.eq("situation", situation);
     if (state) countQuery = countQuery.eq("state", state);
     if (serviceId) {
-        const { data: links } = await supabase
-            .from("client_services")
-            .select("client_id")
-            .eq("service_id", serviceId);
-        const ids = (links ?? []).map((l: any) => l.client_id);
-        countQuery = ids.length
-            ? countQuery.in("id", ids)
-            : countQuery.in("id", ["00000000-0000-0000-0000-000000000000"]);
+        if (serviceId === "only_cloud") {
+            const CLOUD_ID = "2eb197f2-3cf7-4b28-ba71-e49222810503";
+            const { data: allLinks } = await supabase
+                .from("client_services")
+                .select("client_id, service_id");
+
+            const clientMap = new Map<string, string[]>();
+            (allLinks || []).forEach((l: any) => {
+                const list = clientMap.get(l.client_id) || [];
+                list.push(l.service_id);
+                clientMap.set(l.client_id, list);
+            });
+
+            const ids = Array.from(clientMap.entries())
+                .filter(([_, services]) => services.length === 1 && services[0] === CLOUD_ID)
+                .map(([clientId]) => clientId);
+
+            countQuery = ids.length
+                ? countQuery.in("id", ids)
+                : countQuery.in("id", ["00000000-0000-0000-0000-000000000000"]);
+        } else {
+            const { data: links } = await supabase
+                .from("client_services")
+                .select("client_id")
+                .eq("service_id", serviceId);
+            const ids = (links ?? []).map((l: any) => l.client_id);
+            countQuery = ids.length
+                ? countQuery.in("id", ids)
+                : countQuery.in("id", ["00000000-0000-0000-0000-000000000000"]);
+        }
     }
     const { count } = await countQuery;
 
     let query = base
         .select(
-            "id, client_contract, alias, situation, cnpj, city, state, street, number, complement, neighborhood, zip"
+            "id, client_contract, alias, corporate_name, situation, cnpj, city, state, street, number, complement, neighborhood, zip, company_type"
         )
         .order("client_contract", { ascending: true, nullsFirst: false });
 
@@ -49,14 +71,37 @@ export async function getClients(
     if (situation) query = query.eq("situation", situation);
     if (state) query = query.eq("state", state);
     if (serviceId) {
-        const { data: links } = await supabase
-            .from("client_services")
-            .select("client_id")
-            .eq("service_id", serviceId);
-        const ids = (links ?? []).map((l: any) => l.client_id);
-        query = ids.length
-            ? query.in("id", ids)
-            : query.in("id", ["00000000-0000-0000-0000-000000000000"]);
+        if (serviceId === "only_cloud") {
+            const CLOUD_ID = "2eb197f2-3cf7-4b28-ba71-e49222810503"; // Hardcoded Cloud ID
+            const { data: allLinks } = await supabase
+                .from("client_services")
+                .select("client_id, service_id");
+
+            const clientMap = new Map<string, string[]>();
+            (allLinks || []).forEach((l: any) => {
+                const list = clientMap.get(l.client_id) || [];
+                list.push(l.service_id);
+                clientMap.set(l.client_id, list);
+            });
+
+            const ids = Array.from(clientMap.entries())
+                .filter(([_, services]) => services.length === 1 && services[0] === CLOUD_ID)
+                .map(([clientId]) => clientId);
+
+            query = ids.length
+                ? query.in("id", ids)
+                : query.in("id", ["00000000-0000-0000-0000-000000000000"]);
+
+        } else {
+            const { data: links } = await supabase
+                .from("client_services")
+                .select("client_id")
+                .eq("service_id", serviceId);
+            const ids = (links ?? []).map((l: any) => l.client_id);
+            query = ids.length
+                ? query.in("id", ids)
+                : query.in("id", ["00000000-0000-0000-0000-000000000000"]);
+        }
     }
 
     const { data: clientsRaw } = await query;

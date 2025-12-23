@@ -1,46 +1,90 @@
 "use client";
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 
 function PieInteractive({ data, colors, labels, onSelect }: { data: number[]; colors: string[]; labels: string[]; onSelect: (label: string) => void }) {
+  const [progress, setProgress] = useState(0);
+
+  useEffect(() => {
+    let startTimestamp: number | null = null;
+    const duration = 1000;
+
+    const animate = (timestamp: number) => {
+      if (!startTimestamp) startTimestamp = timestamp;
+      const elapsed = timestamp - startTimestamp;
+      const p = Math.min(elapsed / duration, 1);
+
+      // Easing: easeOutCubic
+      const ease = 1 - Math.pow(1 - p, 3);
+
+      setProgress(ease);
+      if (p < 1) requestAnimationFrame(animate);
+    };
+
+    requestAnimationFrame(animate);
+  }, []);
+
   const total = data.reduce((a, b) => a + b, 0) || 1;
   const radius = 60;
   const cx = 70;
   const cy = 70;
   let start = 0;
-  const segments = data.map((v, i) => {
+
+  // Calculate full segments first
+  const allSegments = data.map((v, i) => {
     const angle = (v / total) * Math.PI * 2;
     const seg = { v, label: labels[i], color: colors[i], start, end: start + angle };
     start += angle;
     return seg;
   });
+
+  const maxAngle = Math.PI * 2 * progress;
+
   function arcPathFrom(s: number, e: number) {
+    // If segment is completely beyond the current animation progress, don't draw
+    if (s >= maxAngle) return "";
+
+    // Cap the end angle to the current animation progress
+    const effectiveEnd = Math.min(e, maxAngle);
+
     const x1 = cx + radius * Math.cos(s);
     const y1 = cy + radius * Math.sin(s);
-    const x2 = cx + radius * Math.cos(e);
-    const y2 = cy + radius * Math.sin(e);
-    const largeArc = e - s > Math.PI ? 1 : 0;
+    const x2 = cx + radius * Math.cos(effectiveEnd);
+    const y2 = cy + radius * Math.sin(effectiveEnd);
+    const largeArc = effectiveEnd - s > Math.PI ? 1 : 0;
+
+    // If start == end (or extremely close), drawing artifacts might appear, but usually fine
+    // Move to center to make it a slice
     return `M ${cx} ${cy} L ${x1} ${y1} A ${radius} ${radius} 0 ${largeArc} 1 ${x2} ${y2} Z`;
   }
+
   return (
     <div className="flex gap-4">
       <svg width={140} height={140} viewBox="0 0 140 140">
-        {segments.map((seg, i) => (
+        {allSegments.map((seg, i) => (
           <path
             key={`seg-${i}`}
             d={arcPathFrom(seg.start, seg.end)}
             fill={seg.color}
             stroke="#fff"
             strokeWidth={1}
-            style={{ cursor: "pointer" }}
+            style={{ cursor: "pointer", transition: "opacity 0.2s" }}
             onClick={() => onSelect(seg.label)}
           />
         ))}
-        {segments.map((seg, i) => {
+        {allSegments.map((seg, i) => {
+          // Calculate usage for text positioning opacity
+          const segMid = (seg.start + seg.end) / 2;
+          // Only show text if the segment's mid-point is reached by animation
+          const isVisible = segMid < maxAngle;
+
           const mid = (seg.start + seg.end) / 2;
           const rx = cx + radius * 0.6 * Math.cos(mid);
           const ry = cy + radius * 0.6 * Math.sin(mid);
+
+          if (!isVisible) return null;
+
           return (
-            <text key={`txt-${i}`} x={rx} y={ry} textAnchor="middle" dominantBaseline="middle" fill="#fff" fontSize={14} fontWeight={600}>
+            <text key={`txt-${i}`} x={rx} y={ry} textAnchor="middle" dominantBaseline="middle" fill="#fff" fontSize={14} fontWeight={600} className="animate-in fade-in duration-300">
               {data[i]}
             </text>
           );
@@ -55,7 +99,7 @@ function PieInteractive({ data, colors, labels, onSelect }: { data: number[]; co
             aria-label={`Filtrar por ${label}`}
           >
             <span className="inline-block h-3 w-3 rounded" style={{ backgroundColor: colors[i] }} />
-            <span className="text-gray-700">{label}</span>
+            <span className="text-gray-700 dark:text-gray-300">{label}</span>
           </button>
         ))}
       </div>
@@ -119,7 +163,7 @@ export default function DashboardInteractive({ clients, systems }: { clients: Ar
 
   return (
     <div className="grid sm:grid-cols-3 gap-4">
-      <div className="relative rounded-lg border border-gray-300 bg-white px-4 py-4 pt-5 dark:bg-gray-800 dark:border-gray-700">
+      <div className="relative rounded-lg border border-gray-300 bg-white px-4 py-4 pt-5 dark:bg-gray-800 dark:border-gray-600">
         <div className="absolute top-0 left-2 -translate-y-1/2 bg-white px-1 text-xs text-brand-green-700 dark:bg-gray-800 dark:text-brand-green-500">
           Clientes por Situação
         </div>
@@ -132,7 +176,7 @@ export default function DashboardInteractive({ clients, systems }: { clients: Ar
           />
         </div>
       </div>
-      <div className="relative rounded-lg border border-gray-300 bg-white px-4 py-4 pt-5 dark:bg-gray-800 dark:border-gray-700">
+      <div className="relative rounded-lg border border-gray-300 bg-white px-4 py-4 pt-5 dark:bg-gray-800 dark:border-gray-600">
         <div className="absolute top-0 left-2 -translate-y-1/2 bg-white px-1 text-xs text-brand-green-700 dark:bg-gray-800 dark:text-brand-green-500">
           Clientes por UF (Ativos)
         </div>
@@ -145,7 +189,7 @@ export default function DashboardInteractive({ clients, systems }: { clients: Ar
           />
         </div>
       </div>
-      <div className="relative rounded-lg border border-gray-300 bg-white px-4 py-4 pt-5 dark:bg-gray-800 dark:border-gray-700">
+      <div className="relative rounded-lg border border-gray-300 bg-white px-4 py-4 pt-5 dark:bg-gray-800 dark:border-gray-600">
         <div className="absolute top-0 left-2 -translate-y-1/2 bg-white px-1 text-xs text-brand-green-700 dark:bg-gray-800 dark:text-brand-green-500">
           Cloud
         </div>
@@ -161,7 +205,7 @@ export default function DashboardInteractive({ clients, systems }: { clients: Ar
 
       {(systems && systems.labels.length) ? (
         <div className="sm:col-span-3 grid sm:grid-cols-2 gap-4">
-          <div className="relative rounded-lg border border-gray-300 bg-white px-4 py-4 pt-5 dark:bg-gray-800 dark:border-gray-700">
+          <div className="relative rounded-lg border border-gray-300 bg-white px-4 py-4 pt-5 dark:bg-gray-800 dark:border-gray-600">
             <div className="absolute top-0 left-2 -translate-y-1/2 bg-white px-1 text-xs text-brand-green-700 dark:bg-gray-800 dark:text-brand-green-500">
               Clientes por Sistemas (Ativos)
             </div>
@@ -182,7 +226,7 @@ export default function DashboardInteractive({ clients, systems }: { clients: Ar
               />
             </div>
           </div>
-          <div className="relative rounded-lg border border-gray-300 bg-white px-4 py-4 pt-5 dark:bg-gray-800 dark:border-gray-700">
+          <div className="relative rounded-lg border border-gray-300 bg-white px-4 py-4 pt-5 dark:bg-gray-800 dark:border-gray-600">
             <div className="absolute top-0 left-2 -translate-y-1/2 bg-white px-1 text-xs text-brand-green-700 dark:bg-gray-800 dark:text-brand-green-500">
               Clientes por Tipo de Empresa
             </div>
@@ -197,7 +241,7 @@ export default function DashboardInteractive({ clients, systems }: { clients: Ar
           </div>
         </div>
       ) : (
-        <div className="relative rounded-lg border border-gray-300 bg-white px-4 py-4 pt-5 sm:col-span-3 dark:bg-gray-800 dark:border-gray-700">
+        <div className="relative rounded-lg border border-gray-300 bg-white px-4 py-4 pt-5 sm:col-span-3 dark:bg-gray-800 dark:border-gray-600">
           <div className="absolute top-0 left-2 -translate-y-1/2 bg-white px-1 text-xs text-brand-green-700 dark:bg-gray-800 dark:text-brand-green-500">
             Clientes por Tipo de Empresa
           </div>

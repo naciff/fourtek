@@ -7,6 +7,10 @@ import { FloatingLabelTextarea } from "@/components/ui/FloatingLabelTextarea";
 import StatusBadge from "@/components/ui/StatusBadge";
 import { getClientById, getClients, getServicesList } from "@/services/clients";
 import { ClientFilters } from "./ClientFilters";
+import { ClientDetailsPanel } from "@/components/clients/ClientDetailsPanel";
+import { ClientRowActions } from "@/components/clients/ClientRowActions";
+import { ClientGrid } from "@/components/clients/ClientGrid";
+import { ViewToggle } from "@/components/clients/ViewToggle";
 
 export default async function ClientsListPage({ searchParams }: { searchParams?: Record<string, string> }) {
   const supabase = supabaseServer();
@@ -16,8 +20,9 @@ export default async function ClientsListPage({ searchParams }: { searchParams?:
   const serviceId = searchParams?.serviceId || "";
   const page = Math.max(1, parseInt(searchParams?.page || "1"));
   const viewId = searchParams?.view || "";
-  const pageSizeRaw = parseInt(searchParams?.pageSize || "20");
-  const pageSize = [20, 50, 100].includes(pageSizeRaw) ? pageSizeRaw : 20;
+  const layout = searchParams?.layout === "list" ? "list" : "grid";
+  const pageSizeRaw = parseInt(searchParams?.pageSize || "15");
+  const pageSize = [15, 30, 50, 100].includes(pageSizeRaw) ? pageSizeRaw : 15;
 
   const { clients, count, totalPages } = await getClients(supabase, {
     q,
@@ -40,127 +45,155 @@ export default async function ClientsListPage({ searchParams }: { searchParams?:
   }
 
   return (
-    <div className="grid gap-4">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-semibold text-brand-blue-800">Clientes</h1>
-      </div>
-      <ClientFilters services={services || []} />
-      <div className="rounded-lg border bg-white overflow-hidden shadow-sm">
-        <table className="w-full text-sm text-gray-700">
-          <thead className="bg-[#2C3E50] text-white">
-            <tr>
-              <th className="text-left p-2">Contrato</th>
-              <th className="text-left p-2">Cliente</th>
-              <th className="text-left p-2">Situação</th>
-              <th className="text-left p-2">CNPJ</th>
-              <th className="text-left p-2">Cidade/UF</th>
-              <th className="text-left p-2">Ações</th>
-            </tr>
-          </thead>
-          <tbody>
-            {clients?.map((c, idx) => (
-              <tr key={c.id} className={`${idx % 2 === 0 ? 'bg-white' : 'bg-[#F9F9F9]'} border-t border-[#F5F5F5]`}>
-                <td className="p-2">
-                  <Link href={{ pathname: "/clients", query: { q, situation: situationFilter, state: stateFilter, serviceId, page, view: (c as any).id } }} className="text-brand-blue-700">
-                    {(c as any).client_contract}
-                  </Link>
-                </td>
-                <td className="p-2">
-                  <Link href={{ pathname: "/clients", query: { q, situation: situationFilter, state: stateFilter, serviceId, page, view: (c as any).id } }} className="text-brand-blue-700">
-                    {(c as any).alias}
-                  </Link>
-                </td>
-                <td className="p-2">{c.situation ? <StatusBadge status={String(c.situation)} /> : null}</td>
-                <td className="p-2">{c.cnpj}</td>
-                <td className="p-2">{c.city}/{c.state}</td>
-                <td className="p-2 flex gap-2">
-                  <Link href={`/clients/${c.id}`} className="text-gray-400" title="Editar" aria-label="Editar">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25z" /><path d="M20.71 7.04a1.003 1.003 0 0 0 0-1.42l-2.34-2.34a1.003 1.003 0 0 0-1.42 0l-1.83 1.83 3.75 3.75 1.84-1.82z" /></svg>
-                  </Link>
-                  <Link href={`/clients/${c.id}/contracts`} className="text-gray-400" title="Contratos" aria-label="Contratos">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M6 2h9l5 5v15a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2z" /><path d="M14 2v6h6" /></svg>
-                  </Link>
-                  <a href={`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(buildAddress(c))}`} target="_blank" rel="noopener noreferrer" className="text-red-600 hover:text-red-700" title="Rota" aria-label="Rota">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C8.686 2 6 4.686 6 8c0 5.25 6 12 6 12s6-6.75 6-12c0-3.314-2.686-6-6-6zm0 8.5A2.5 2.5 0 1 1 12 5a2.5 2.5 0 0 1 0 5.5z" /></svg>
-                  </a>
-                  <DeleteButton id={(c as any).id} />
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-      {viewClient ? (
-        <div className="fixed inset-0 bg-black/40 grid place-items-center z-50">
-          <div className="bg-white rounded-lg p-4 w-[90%] max-w-2xl">
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="text-base font-semibold text-brand-blue-800">Visualizar Cliente</h2>
-              <Link href={{ pathname: "/clients", query: { q, situation: situationFilter, state: stateFilter, serviceId, page } }} className="text-gray-600 hover:text-gray-800" title="Fechar" aria-label="Fechar">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
-              </Link>
+    <div className="flex flex-col lg:flex-row items-start gap-4 h-[calc(100vh-48px)] overflow-hidden">
+      {/* List Section - Scrollable */}
+      <div className="flex-1 w-full min-w-0 flex flex-col h-full">
+        {/* Header Section */}
+        <div className="flex-shrink-0 px-4 pt-4 pb-2">
+          <div className="flex justify-between items-start">
+            <div>
+              <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-1">Gestão de Clientes</h1>
+              <p className="text-sm text-gray-500 dark:text-gray-400">Gerencie todos os clientes cadastrados no sistema</p>
             </div>
-            <div className="grid sm:grid-cols-2 gap-4">
-              <div className="sm:col-span-2">
-                <FloatingLabelInput label="Razão Social" value={String(viewClient?.corporate_name ?? "")} readOnly />
-              </div>
-              <div>
-                <FloatingLabelInput label="Apelido" value={String(viewClient?.alias ?? "")} readOnly />
-              </div>
-              <div className="flex gap-2 items-center">
-                <div className="flex-1">
-                  <FloatingLabelInput label="CNPJ" value={String(viewClient?.cnpj ?? "")} readOnly />
-                </div>
-                {(() => {
-                  const d = String(viewClient?.cnpj ?? "").replace(/\D/g, "");
-                  const href = d.length === 14 ? `https://solucoes.receita.fazenda.gov.br/servicos/cnpjreva/Cnpjreva_Solicitacao.asp?cnpj=${d}` : "#";
-                  const disabled = d.length !== 14;
-                  return (
-                    <a
-                      href={href}
-                      target={disabled ? undefined : "_blank"}
-                      rel={disabled ? undefined : "noopener noreferrer"}
-                      title="Consulta CNPJ"
-                      aria-label="Consulta CNPJ"
-                      className={`inline-flex items-center justify-center rounded bg-brand-blue-600 text-white w-[42px] h-[42px] ${disabled ? "opacity-50 cursor-not-allowed" : ""}`}
-                    >
-                      <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M14 3h7v7h-2V6.41l-9.29 9.3-1.42-1.42 9.3-9.29H14V3z" /><path d="M5 5h7v2H7v10h10v-5h2v7H5V5z" /></svg>
-                    </a>
-                  );
-                })()}
-              </div>
-              <div className="sm:col-span-2">
-                <FloatingLabelTextarea label="Endereço" value={buildAddress(viewClient)} readOnly className="min-h-[80px]" />
-              </div>
-              <div>
-                <FloatingLabelInput label="Telefone" value={String(viewClient?.phone ?? "")} readOnly />
-              </div>
-              <div>
-                <FloatingLabelInput label="E-mail" value={String(viewClient?.email ?? "")} readOnly />
-              </div>
-              <div className="sm:col-span-2">
-                <FloatingLabelInput label="Nome do Representante" value={String(viewClient?.representatives_text ?? "")} readOnly />
-              </div>
-              <div className="sm:col-span-2">
-                <FloatingLabelInput label="Cargo" value={String(viewClient?.position ?? "")} readOnly />
-              </div>
-              <div className="sm:col-span-2">
-                <FloatingLabelInput label="Serviços contratados" value={String(viewClient?.services ?? "")} readOnly />
-              </div>
-              <div className="sm:col-span-2">
-                <FloatingLabelInput label="Situação" value={String(viewClient?.situation ?? "")} readOnly />
-              </div>
-            </div>
+            <ViewToggle />
           </div>
         </div>
-      ) : null}
-      <Pagination
-        pathname="/clients"
-        params={{ q, situation: situationFilter, state: stateFilter, serviceId }}
-        page={page}
-        pageSize={pageSize}
-        totalPages={totalPages}
-        count={count ?? 0}
-      />
-    </div>
+        <ClientFilters services={services || []} />
+        {/* Main Content Area: Table/Grid */}
+        <div className="flex-1 min-h-0 flex flex-col gap-4 px-4 pb-4">
+          {layout === "grid" ? (
+            <div className="flex-1 w-full min-w-0 flex flex-col h-full overflow-hidden rounded-2xl border bg-gray-50 dark:bg-gray-900/50 dark:border-gray-700 shadow-inner relative">
+              <ClientGrid clients={clients || []} searchParams={searchParams} />
+            </div>
+          ) : (
+            <div className="flex-1 w-full min-w-0 flex flex-col h-full overflow-hidden">
+              <div className="flex-1 overflow-auto min-h-0 rounded-2xl border bg-white dark:bg-gray-800 dark:border-gray-700 shadow-sm mx-1 mb-2 relative scrollbar-thin scrollbar-thumb-gray-200 dark:scrollbar-thumb-gray-700">
+                <table className="w-full text-xs sm:text-sm text-gray-700 dark:text-gray-300 relative table-fixed">
+                  <thead className="bg-[#2C3E50] dark:bg-gray-950 text-white sticky top-0 z-10 text-xs font-semibold tracking-wider shadow-sm">
+                    <tr>
+                      <th className="text-left p-3 pl-4 w-[110px]">Contrato</th>
+                      <th className="text-left p-3 w-[35%]">Nome do cliente</th>
+                      <th className={`text-left p-3 w-[150px] ${viewClient ? 'hidden xl:table-cell' : ''}`}>CNPJ</th>
+                      <th className={`text-left p-3 w-[180px] ${viewClient ? 'hidden 2xl:table-cell' : ''}`}>Cidade/uf</th>
+                      <th className="text-center p-3 w-[100px]">Status</th>
+                      <th className="text-center p-3 w-[60px] pr-4">Ações</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
+                    {clients?.map((c: any) => {
+                      const isSelected = viewClient?.id === c.id;
+                      const getInitials = (name: string) => {
+                        const parts = name.trim().split(' ').filter(Boolean);
+                        if (parts.length === 0) return '?';
+                        if (parts.length === 1) return parts[0].substring(0, 2).toUpperCase();
+                        return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+                      };
+                      const initials = getInitials(c.alias || c.corporate_name || "?");
+
+                      // Deterministic pastel colors for avatar
+                      const colors = [
+                        'bg-blue-100 text-blue-600',
+                        'bg-purple-100 text-purple-600',
+                        'bg-green-100 text-green-600',
+                        'bg-pink-100 text-pink-600',
+                        'bg-yellow-100 text-yellow-600',
+                        'bg-indigo-100 text-indigo-600'
+                      ];
+                      const colorIndex = (c.id.charCodeAt(0) || 0) % colors.length;
+                      const avatarClass = colors[colorIndex];
+
+                      // Format contract number to 2 digits
+                      const contractFormatted = String(c.client_contract).padStart(2, '0');
+
+                      return (
+                        <tr
+                          key={c.id}
+                          className={`
+                        group transition-colors duration-150 ease-in-out
+                        ${isSelected
+                              ? 'bg-blue-50 dark:bg-blue-900/20'
+                              : 'hover:bg-gray-50 dark:hover:bg-gray-700/50'
+                            }
+                      `}
+                        >
+                          {/* Contrato */}
+                          <td className="p-3 pl-4">
+                            <div className="font-bold text-gray-900 dark:text-gray-100 text-xs text-brand-blue-600 dark:text-brand-blue-400">
+                              <Link href={{ pathname: "/clients", query: { ...searchParams, view: c.id } }} scroll={false} className="hover:underline transition-colors">
+                                {contractFormatted}
+                              </Link>
+                            </div>
+                          </td>
+
+                          {/* Cliente (Avatar + Name) */}
+                          <td className="p-3">
+                            <Link href={{ pathname: "/clients", query: { ...searchParams, view: c.id } }} className="flex items-center gap-3 group/link" scroll={false}>
+                              <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold ${avatarClass} flex-shrink-0`}>
+                                {initials}
+                              </div>
+                              <div className="min-w-0">
+                                <div className={`font-semibold truncate ${isSelected ? 'text-brand-blue-700 dark:text-brand-blue-300' : 'text-gray-900 dark:text-gray-100 group-hover/link:text-brand-blue-600'}`}>
+                                  {c.alias || c.corporate_name}
+                                </div>
+                                {c.email && (
+                                  <div className="text-xs text-gray-400 truncate hidden sm:block">
+                                    {c.email}
+                                  </div>
+                                )}
+                              </div>
+                            </Link>
+                          </td>
+
+                          {/* CNPJ */}
+                          <td className={`p-3 text-xs text-gray-500 ${viewClient ? 'hidden xl:table-cell' : ''}`}>
+                            {c.cnpj}
+                          </td>
+
+                          {/* Cidade/UF */}
+                          <td className={`p-3 ${viewClient ? 'hidden 2xl:table-cell' : ''}`}>
+                            <span className="text-gray-600 dark:text-gray-300">{c.city} - {c.state}</span>
+                          </td>
+
+                          {/* Status */}
+                          <td className="p-3 text-center">
+                            <StatusBadge status={String(c.situation)} />
+                          </td>
+
+                          {/* Ações */}
+                          <td className="p-3 pr-4 text-center">
+                            <ClientRowActions clientId={c.id} contractNumber={c.client_contract} />
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+
+          <div className="flex-shrink-0">
+            <Pagination
+              pathname="/clients"
+              params={{ q, situation: situationFilter, state: stateFilter, serviceId, layout }}
+              page={page}
+              pageSize={pageSize}
+              totalPages={totalPages}
+              count={count ?? 0}
+              sizes={[15, 30, 50, 100]}
+            />
+          </div>
+        </div>
+      </div>
+
+      {/* Detail Panel - Sticky Right */}
+      {viewClient && (
+        <ClientDetailsPanel
+          client={viewClient}
+          searchParams={{ q, situation: situationFilter, state: stateFilter, serviceId, page }}
+        />
+      )}
+
+    </div >
   );
 }

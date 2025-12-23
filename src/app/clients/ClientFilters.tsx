@@ -43,9 +43,7 @@ export function ClientFilters({ services }: ClientFiltersProps) {
         // Reset page on filter change
         params.set("page", "1");
 
-        startTransition(() => {
-            router.replace(`${pathname}?${params.toString()}`);
-        });
+        router.replace(`${pathname}?${params.toString()}`);
     }
 
     function clearFilters() {
@@ -63,9 +61,9 @@ export function ClientFilters({ services }: ClientFiltersProps) {
                 Novo cliente
             </Link>
 
-            <div className="flex-initial w-[360px]">
+            <div className="flex-initial w-[260px]">
                 <FloatingLabelInput
-                    label="Buscar por apelido, contrato ou CNPJ..."
+                    label="Buscar..."
                     value={text}
                     onChange={(e) => setText(e.target.value)}
                 />
@@ -100,13 +98,14 @@ export function ClientFilters({ services }: ClientFiltersProps) {
                 </FloatingLabelSelect>
             </div>
 
-            <div className="w-[200px]">
+            <div className="w-[320px]">
                 <FloatingLabelSelect
                     label="Serviço"
                     value={serviceId}
                     onChange={(e) => updateFilter("serviceId", e.target.value)}
                 >
                     <option value=""></option>
+                    <option value="only_cloud" className="text-gray-900">Somente Cloud</option>
                     {services.map((s) => (
                         <option key={s.id} value={s.id}>{s.name}</option>
                     ))}

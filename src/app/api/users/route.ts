@@ -11,9 +11,9 @@ async function tryInsertSupabase(user: any) {
     const { data: auth } = await supabase.auth.getUser();
     const uid = auth.user?.id;
     if (!uid) throw new Error("Usuário não autenticado");
-    const dup = await supabase.from("usuarios").select("id").eq("email", user.email).limit(1);
+    const dup = await supabase.from("users").select("id").eq("email", user.email).limit(1);
     if (Array.isArray(dup.data) && dup.data.length) return { error: new Error("E-mail já cadastrado") };
-    const { data, error } = await supabase.from("usuarios").insert({
+    const { data, error } = await supabase.from("users").insert({
       user_id: uid,
       full_name: user.full_name,
       email: user.email,
@@ -31,7 +31,7 @@ async function tryInsertSupabase(user: any) {
 async function tryListSupabase() {
   try {
     const supabase = createRouteHandlerClient({ cookies });
-    const { data, error } = await supabase.from("usuarios").select("id,full_name,email,group,permissions").order("id", { ascending: false });
+    const { data, error } = await supabase.from("users").select("id,full_name,email,group,permissions,last_login,phone").order("id", { ascending: false });
     if (error) throw error;
     return { data };
   } catch (e: any) {
@@ -79,10 +79,10 @@ export async function DELETE(req: Request) {
     const { data: auth } = await supabase.auth.getUser();
     const uid = auth.user?.id;
     if (!uid) return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
-    const { error } = await supabase.from("usuarios").delete().eq("id", id).eq("user_id", uid);
+    const { error } = await supabase.from("users").delete().eq("id", id).eq("user_id", uid);
     if (error) return NextResponse.json({ error: error.message }, { status: 400 });
     return NextResponse.json({ ok: true }, { status: 200 });
-  } catch (e:any) {
+  } catch (e: any) {
     return NextResponse.json({ error: "Erro interno" }, { status: 500 });
   }
 }
@@ -102,10 +102,10 @@ export async function PATCH(req: Request) {
       const salt = process.env.PASSWORD_SALT || "dev-salt";
       update.password_hash = crypto.createHash("sha256").update(String(password) + salt).digest("hex");
     }
-    const { error } = await supabase.from("usuarios").update(update).eq("id", id).eq("user_id", uid);
+    const { error } = await supabase.from("users").update(update).eq("id", id).eq("user_id", uid);
     if (error) return NextResponse.json({ error: error.message }, { status: 400 });
     return NextResponse.json({ ok: true }, { status: 200 });
-  } catch (e:any) {
+  } catch (e: any) {
     return NextResponse.json({ error: "Erro interno" }, { status: 500 });
   }
 }

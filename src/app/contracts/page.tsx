@@ -89,7 +89,7 @@ export default async function ContractsListPage({ searchParams }: { searchParams
   return (
     <div className="grid gap-4">
       <div className="flex justify-between items-center">
-        <h1 className="text-2xl font-semibold text-brand-blue-800">Contratos</h1>
+        <h1 className="text-2xl font-semibold text-brand-blue-800 dark:text-brand-blue-400">Contratos</h1>
         <div className="flex items-center gap-2">
           <Link href="/contracts/new" className="rounded bg-brand-green-600 px-3 py-1.5 text-white">Novo contrato</Link>
           <Link href={{ pathname: "/contracts", query: { clientId, status, page, close: "1" } }} className="rounded bg-gray-600 px-3 py-1.5 text-white" title="Encerrar vencidos" aria-label="Encerrar vencidos">Encerrar vencidos</Link>
@@ -119,9 +119,9 @@ export default async function ContractsListPage({ searchParams }: { searchParams
           <Link href="/contracts" className="text-sm text-brand-blue-700">Limpar filtro</Link>
         </div>
       </form>
-      <div className="rounded-lg border bg-white overflow-hidden shadow-sm">
-        <table className="w-full text-sm text-gray-700">
-          <thead className="bg-[#2C3E50] text-white">
+      <div className="rounded-lg border bg-white dark:bg-gray-800 dark:border-gray-700 overflow-hidden shadow-sm">
+        <table className="w-full text-sm text-gray-700 dark:text-gray-300">
+          <thead className="bg-[#2C3E50] dark:bg-gray-950 text-white">
             <tr>
               <th className="text-left p-2">Cliente</th>
               <th className="text-left p-2">Situação</th>
@@ -134,7 +134,7 @@ export default async function ContractsListPage({ searchParams }: { searchParams
           </thead>
           <tbody>
             {contracts?.map((c, idx) => (
-              <tr key={c.id} className={`${idx % 2 === 0 ? 'bg-white' : 'bg-[#F9F9F9]'} border-t border-[#F5F5F5]`}>
+              <tr key={c.id} className={`${idx % 2 === 0 ? 'bg-white dark:bg-gray-800/40' : 'bg-[#F9F9F9] dark:bg-gray-800/60'} border-t border-[#F5F5F5] dark:border-gray-700/50 hover:bg-black/5 dark:hover:bg-white/5 transition-colors`}>
                 <td className="p-2">{(c as any).client?.alias || (c as any).client?.trade_name}</td>
                 <td className="p-2"><StatusBadge status={String(c.status)} /></td>
                 <td className="p-2">{fmtDate(c.start_date)}</td>
@@ -160,9 +160,9 @@ export default async function ContractsListPage({ searchParams }: { searchParams
             ))}
           </tbody>
           <tfoot>
-            <tr className="border-t border-[#F5F5F5] bg-[#F9F9F9]">
+            <tr className="border-t border-[#F5F5F5] dark:border-gray-700 bg-[#F9F9F9] dark:bg-gray-900/50">
               <td className="p-2" colSpan={5}></td>
-              <td className="p-2 font-bold text-brand-green-800 text-left">{Number((contracts || []).reduce((sum, x) => sum + Number((x as any).total_value || 0), 0)).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}</td>
+              <td className="p-2 font-bold text-brand-green-800 dark:text-brand-green-400 text-left">{Number((contracts || []).reduce((sum, x) => sum + Number((x as any).total_value || 0), 0)).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}</td>
               <td className="p-2"></td>
             </tr>
           </tfoot>
