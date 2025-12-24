@@ -30,6 +30,11 @@ export default function UserCreatePage() {
 
   function validateEmail(s: string) { return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(s) && s.length <= 255; }
   function validatePassword(p: string) {
+    // Se senha vazia, considera válida (ao editar)
+    if (p.length === 0) {
+      setChecks({ len: false, num: false, special: false, upper: false, lower: false });
+      return true;
+    }
     const c = {
       len: p.length >= 8,
       num: /\d/.test(p),
@@ -56,6 +61,13 @@ export default function UserCreatePage() {
     });
   }
 
+  function isOnline(lastSeenAt: string) {
+    if (!lastSeenAt) return false;
+    const lastSeen = new Date(lastSeenAt).getTime();
+    const now = new Date().getTime();
+    return (now - lastSeen) < 300000; // 5 minutos
+  }
+
   // Avatar color logic (deterministic)
   function getAvatarColor(id: string) {
     const colors = [
@@ -73,30 +85,51 @@ export default function UserCreatePage() {
     setError(null);
     setSuccess(null);
     const full = form.full_name.trim();
-    if (!full || !form.email || !form.password || !form.confirm) {
+    const isEdit = Boolean(editingId);
+
+    // Validações básicas
+    if (!full || !form.email) {
       setError("Preencha todos os campos obrigatórios.");
       return;
     }
     if (full.length < 3) { setError("Nome muito curto (mínimo 3)."); return; }
     if (!validateEmail(form.email)) { setError("E-mail inválido."); return; }
-    if (!validatePassword(form.password)) { setError("Senha não atende aos requisitos."); return; }
-    if (form.password !== form.confirm) {
-      setError("As senhas não coincidem.");
+
+    // Senha só é obrigatória ao criar OU se preenchida ao editar
+    const passwordProvided = form.password.trim().length > 0;
+    if (!isEdit && !passwordProvided) {
+      setError("Senha é obrigatória ao criar usuário.");
       return;
     }
-    const isEdit = Boolean(editingId);
-    // Updated to use /api/users
-    const res = await fetch("/api/users" + (isEdit ? "" : ""), {
+
+    // Se senha foi fornecida, validar
+    if (passwordProvided) {
+      if (!validatePassword(form.password)) {
+        setError("Senha não atende aos requisitos.");
+        return;
+      }
+      if (form.password !== form.confirm) {
+        setError("As senhas não coincidem.");
+        return;
+      }
+    }
+    const payload: any = {
+      id: editingId,
+      full_name: form.full_name,
+      email: form.email,
+      group: form.group,
+      permissions: Array.from(form.screens),
+    };
+
+    // Só inclui senha se foi fornecida
+    if (passwordProvided) {
+      payload.password = form.password;
+    }
+
+    const res = await fetch("/api/users", {
       method: isEdit ? "PATCH" : "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(isEdit ? {
-        id: editingId,
-        full_name: form.full_name,
-        email: form.email,
-        password: form.password,
-        group: form.group,
-        permissions: Array.from(form.screens),
-      } : {
+      body: JSON.stringify(isEdit ? payload : {
         full_name: form.full_name,
         email: form.email,
         password: form.password,
@@ -104,6 +137,7 @@ export default function UserCreatePage() {
         permissions: Array.from(form.screens),
       }),
     });
+    console.log('Response status:', res.status);
     if (!res.ok) {
       const j = await res.json().catch(() => ({}));
       setError(String(j?.error || `Erro ${res.status}`));
@@ -184,7 +218,7 @@ export default function UserCreatePage() {
               <label className="grid gap-1.5 ">
                 <span className="text-xs font-semibold uppercase text-gray-500">Senha</span>
                 <div className="relative">
-                  <input type={showPwd ? "text" : "password"} className={`border rounded-lg px-3 py-2 w-full bg-white dark:bg-gray-900 dark:border-gray-600 ${checks.len && checks.num && checks.special && checks.upper && checks.lower ? 'border-gray-200 focus:border-brand-green-500' : 'border-red-300'}`} value={form.password} onChange={(e) => { const v = e.target.value; setForm({ ...form, password: v }); validatePassword(v); }} required />
+                  <input type={showPwd ? "text" : "password"} className={`border rounded-lg px-3 py-2 w-full bg-white dark:bg-gray-900 dark:border-gray-600 ${checks.len && checks.num && checks.special && checks.upper && checks.lower ? 'border-gray-200 focus:border-brand-green-500' : 'border-red-300'}`} value={form.password} onChange={(e) => { const v = e.target.value; setForm({ ...form, password: v }); validatePassword(v); }} required={!editingId} placeholder={editingId ? "Deixe em branco para não alterar" : ""} />
                   <button type="button" onClick={() => setShowPwd((v) => !v)} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600" aria-label="Mostrar senha">
                     {showPwd ? <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line></svg> : <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>}
                   </button>
@@ -193,7 +227,7 @@ export default function UserCreatePage() {
               <label className="grid gap-1.5">
                 <span className="text-xs font-semibold uppercase text-gray-500">Confirmação</span>
                 <div className="relative">
-                  <input type={showPwd2 ? "text" : "password"} className={`border rounded-lg px-3 py-2 w-full bg-white dark:bg-gray-900 dark:border-gray-600 ${form.confirm && form.confirm === form.password ? 'border-gray-200 focus:border-brand-green-500' : 'border-red-300'}`} value={form.confirm} onChange={(e) => setForm({ ...form, confirm: e.target.value })} required />
+                  <input type={showPwd2 ? "text" : "password"} className={`border rounded-lg px-3 py-2 w-full bg-white dark:bg-gray-900 dark:border-gray-600 ${form.confirm && form.confirm === form.password ? 'border-gray-200 focus:border-brand-green-500' : 'border-red-300'}`} value={form.confirm} onChange={(e) => setForm({ ...form, confirm: e.target.value })} required={!editingId} placeholder={editingId ? "Deixe em branco para não alterar" : ""} />
                   <button type="button" onClick={() => setShowPwd2((v) => !v)} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
                     {showPwd2 ? <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line></svg> : <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>}
                   </button>
@@ -232,7 +266,17 @@ export default function UserCreatePage() {
             <div className="flex items-center gap-3 pt-2">
               <button
                 type="submit"
-                disabled={!validateEmail(form.email) || !(checks.len && checks.num && checks.special && checks.upper && checks.lower) || form.password !== form.confirm || !form.full_name}
+                disabled={
+                  !validateEmail(form.email) ||
+                  !form.full_name ||
+                  // Se senha fornecida, deve ser válida
+                  (form.password.length > 0 && (
+                    !(checks.len && checks.num && checks.special && checks.upper && checks.lower) ||
+                    form.password !== form.confirm
+                  )) ||
+                  // Se criando, senha é obrigatória
+                  (!editingId && form.password.length === 0)
+                }
                 className="rounded-lg bg-brand-green-600 hover:bg-brand-green-700 text-white px-6 py-2.5 font-medium shadow-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 Salvar Usuário
@@ -257,7 +301,7 @@ export default function UserCreatePage() {
               <tr>
                 <th className="p-4 pl-6">Nome</th>
                 <th className="p-4">Email</th>
-                <th className="p-4">Telefone</th>
+                <th className="p-4">Status</th>
                 <th className="p-4">Data Cadastro</th>
                 <th className="p-4">Último Acesso</th>
                 <th className="p-4 text-right pr-6">Ações</th>
@@ -275,9 +319,20 @@ export default function UserCreatePage() {
                     </div>
                   </td>
                   <td className="p-4 text-gray-600 dark:text-gray-300">{u.email}</td>
-                  <td className="p-4 text-gray-500 dark:text-gray-400">{u.phone || '-'}</td>
-                  {/* Assuming created_at exists, if not use fallback or add to query */}
-                  <td className="p-4 text-gray-500 dark:text-gray-400 text-xs">{formatDate(u.created_at || new Date().toISOString())}</td>
+                  <td className="p-4">
+                    {isOnline(u.last_seen_at) ? (
+                      <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400">
+                        <span className="w-1.5 h-1.5 rounded-full bg-green-600 dark:bg-green-400 animate-pulse"></span>
+                        Online
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-400">
+                        <span className="w-1.5 h-1.5 rounded-full bg-gray-400"></span>
+                        Offline
+                      </span>
+                    )}
+                  </td>
+                  <td className="p-4 text-gray-500 dark:text-gray-400 text-xs">{formatDate(u.created_at)}</td>
                   <td className="p-4 text-gray-500 dark:text-gray-400 text-xs">{formatDate(u.last_login)}</td>
                   <td className="p-4 text-right pr-6">
                     <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">

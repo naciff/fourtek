@@ -26,7 +26,7 @@ export default function LoginPage() {
       return;
     }
     if (auth?.user) {
-      // Update last_login in users table (parallel, non-blocking if possible)
+      // Update last_login
       await supabase.from("users").update({ last_login: new Date().toISOString() }).eq("user_id", auth.user.id);
     }
     router.replace("/dashboard");
@@ -71,7 +71,7 @@ export default function LoginPage() {
 
       {/* Right Pane: Form */}
       <div className="w-full lg:w-1/2 flex items-center justify-center bg-white p-8">
-        <div className="w-full max-w-md flex flex-col items-center gap-4">
+        <div className="w-full max-w-xs flex flex-col items-center gap-4">
 
           <div className="flex flex-col items-center gap-2 mb-4">
             <img src={logoSrc} onError={() => setLogoSrc("/fourtek-logo.svg")} alt="FourTek" className="h-16" />
@@ -80,28 +80,28 @@ export default function LoginPage() {
 
           <form className="w-full grid gap-4" onSubmit={onSubmit}>
             <div className="relative">
-              <label className="absolute -top-2.5 left-3 bg-white px-1 text-sm text-gray-600">E-mail</label>
               <input
-                className="w-full rounded border border-gray-300 px-4 py-3 bg-white focus:ring-2 focus:ring-brand-green-600 outline-none transition-all"
+                className="peer w-full rounded border border-gray-300 px-4 py-2 bg-white focus:ring-2 focus:ring-brand-green-600 outline-none transition-all text-sm"
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
               />
+              <label className="absolute -top-2 left-3 bg-white px-1 text-xs text-gray-600 transition-colors duration-200 peer-focus:text-brand-green-600">E-mail</label>
             </div>
             <div className="relative">
-              <label className="absolute -top-2.5 left-3 bg-white px-1 text-sm text-gray-600">Senha</label>
               <input
-                className="w-full rounded border border-gray-300 px-4 py-3 bg-white focus:ring-2 focus:ring-brand-green-600 outline-none transition-all"
+                className="peer w-full rounded border border-gray-300 px-4 py-2 bg-white focus:ring-2 focus:ring-brand-green-600 outline-none transition-all text-sm"
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
               />
+              <label className="absolute -top-2 left-3 bg-white px-1 text-xs text-gray-600 transition-colors duration-200 peer-focus:text-brand-green-600">Senha</label>
             </div>
 
-            <div className="flex justify-end">
-              <Link href="/reset-password" className="text-sm text-brand-green-600 hover:opacity-80 font-medium">
+            <div className="flex justify-end mt-[-4px]">
+              <Link href="/reset-password" className="text-xs text-brand-green-600 hover:opacity-80 font-medium tracking-tight">
                 Esqueceu a senha?
               </Link>
             </div>
@@ -110,7 +110,7 @@ export default function LoginPage() {
 
             <button
               disabled={loading}
-              className="w-full rounded bg-brand-green-600 hover:bg-brand-green-700 text-white px-4 py-2 transition-colors disabled:opacity-50"
+              className="w-full rounded bg-brand-green-600 hover:bg-brand-green-700 text-white px-4 py-2 text-sm font-bold transition-colors disabled:opacity-50 shadow-sm"
             >
               {loading ? "Entrando..." : "Entrar"}
             </button>
@@ -131,7 +131,7 @@ export default function LoginPage() {
             </a>
           </div>
 
-          <div className="mt-8 text-center text-[10px] text-gray-400 w-full leading-relaxed whitespace-nowrap">
+          <div className="mt-8 text-center text-[10px] text-gray-400 w-full leading-relaxed px-4">
             Ao continuar, você concorda com nossos Termos de Serviços e Politica de Privacidade
           </div>
 

@@ -1,7 +1,7 @@
 "use client";
 import React, { useEffect, useState, FormEvent, useCallback } from "react";
 import { supabaseBrowser } from "@/lib/supabase-browser";
-import { useParams, useRouter } from "next/navigation";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import RepresentativeCreateModal from "@/app/representatives/RepresentativeCreateModal";
 import { ClientSchema, validators } from "@/lib/validation";
@@ -64,9 +64,13 @@ export function ClientEditForm({ clientId }: { clientId?: string }) {
   const btnGhost = `${btnBase} hover:bg-gray-100 hover:text-gray-900`;
   const btnBlue = `${btnBase} bg-brand-blue-600 text-white hover:bg-brand-blue-700`;
 
-  const [tab, setTab] = useState<'dados' | 'inventario' | 'acesso' | 'servidores' | 'prov74' | 'relatorios' | 'pcn' | 'dadosadicionais' | 'sistemas'>('dados');
+  const searchParams = useSearchParams();
+  const urlTab = searchParams.get('tab') as 'dados' | 'inventario' | 'acesso' | 'servidores' | 'prov74' | 'relatorios' | 'pcn' | 'dadosadicionais' | 'sistemas' | null;
+  const urlSubTab = searchParams.get('subtab');
+
+  const [tab, setTab] = useState<'dados' | 'inventario' | 'acesso' | 'servidores' | 'prov74' | 'relatorios' | 'pcn' | 'dadosadicionais' | 'sistemas'>(urlTab || 'dados');
   const [form, setForm] = useState<any>(isNew ? DEFAULT_FORM_STATE : null);
-  const [activeTab, setActiveTab] = useState("Empresa");
+  const [activeTab, setActiveTab] = useState(urlSubTab || "Empresa");
   const [error, setError] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(false);

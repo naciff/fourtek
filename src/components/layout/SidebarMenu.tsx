@@ -2,6 +2,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState, ReactNode, useEffect } from "react";
 import { useLayout } from "./LayoutContext";
+import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
 
 function CollapsibleSection({ title, icon, children, activePaths = [], horizontal = false }: { title: string, icon: ReactNode, children: ReactNode, activePaths?: string[], horizontal?: boolean }) {
   const pathname = usePathname();
@@ -74,12 +75,23 @@ function CollapsibleSection({ title, icon, children, activePaths = [], horizonta
 export default function SidebarMenu({ horizontal = false }: { horizontal?: boolean }) {
   const pathname = usePathname();
   const { settings } = useLayout();
+  const [userEmail, setUserEmail] = useState<string | null>(null);
+
   const isActive = (href: string) => Boolean(pathname && pathname.startsWith(href));
   const collapsed = settings.nav.collapsed && settings.nav.position === 'side' && !horizontal;
   const isLightSidebar = !horizontal && (settings.theme.style === 'light' || settings.theme.style === 'flat');
 
-  const itemCls = (active: boolean) => {
-    const base = `group link flex items-center ${collapsed ? 'justify-center' : 'gap-2'} rounded-md px-2 py-2 text-[14px] transition-all`;
+  // Fetch user email on mount
+  useEffect(() => {
+    const supabase = createClientComponentClient();
+    supabase.auth.getUser().then(({ data }) => {
+      setUserEmail(data.user?.email || null);
+    });
+  }, []);
+
+  const itemCls = (active: boolean, sub: boolean = false) => {
+    const paddingCls = sub && !collapsed ? 'pl-8 pr-2' : 'px-2';
+    const base = `group link flex items-center ${collapsed ? 'justify-center' : 'gap-2'} rounded-md ${paddingCls} py-2 text-[14px] transition-all`;
     const activeCls = "bg-[#36a78b] text-white shadow-sm";
 
     if (active) return `${base} ${activeCls}`;
@@ -121,11 +133,11 @@ export default function SidebarMenu({ horizontal = false }: { horizontal?: boole
         activePaths={["/contracts", "/representatives"]}
         icon={<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>}
       >
-        <Link href="/contracts" className={itemCls(isActive("/contracts"))}>
+        <Link href="/contracts" className={itemCls(isActive("/contracts"), true)}>
           <svg className={iconCls(isActive("/contracts"))} width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M6 2h9l5 5v15a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2zm8 7h5l-5-5v5z" fill="currentColor" /></svg>
           <span>Contratos</span>
         </Link>
-        <Link href="/representatives" className={itemCls(isActive("/representatives"))}>
+        <Link href="/representatives" className={itemCls(isActive("/representatives"), true)}>
           <svg className={iconCls(isActive("/representatives"))} width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M16 11c2.761 0 5-2.239 5-5s-2.239-5-5-5-5 2.239-5 5 2.239 5 5 5zm-8 0c2.761 0 5-2.239 5-5S10.761 1 8 1 3 3.239 3 6s2.239 5 5 5zm0 2c-3.314 0-6 1.343-6 3v3h10v-3c0-1.657-2.686-3-6-3zm8 0c-1.098 0-2.131.142-3 .391 1.815.762 3 1.935 3 3.609V19h8v-3c0-1.657-2.686-3-8-3z" fill="currentColor" /></svg>
           <span>Representantes</span>
         </Link>
@@ -137,15 +149,15 @@ export default function SidebarMenu({ horizontal = false }: { horizontal?: boole
         activePaths={["/reports"]}
         icon={<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="20" x2="18" y2="10"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="6" y1="20" x2="6" y2="14"></line></svg>}
       >
-        <Link href="/reports/clientes-por-valores" className={itemCls(isActive("/reports/clientes-por-valores"))}>
+        <Link href="/reports/clientes-por-valores" className={itemCls(isActive("/reports/clientes-por-valores"), true)}>
           <svg className={iconCls(isActive("/reports/clientes-por-valores"))} width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M5 3h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2zm2 4v10h2V7H7zm4 6v4h2v-4h-2zm4-8v12h2V5h-2z" fill="currentColor" /></svg>
           <span>Clientes por Valores</span>
         </Link>
-        <Link href="/reports/services" className={itemCls(isActive("/reports/services"))}>
+        <Link href="/reports/services" className={itemCls(isActive("/reports/services"), true)}>
           <svg className={iconCls(isActive("/reports/services"))} width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M3 3h18v2H3V3zm0 6h18v2H3V9zm0 6h18v2H3v-2zm0 6h18v2H3v-2z" fill="currentColor" /></svg>
           <span>Lista de Serviços</span>
         </Link>
-        <Link href="/reports/respondentes" className={itemCls(isActive("/reports/respondentes"))}>
+        <Link href="/reports/respondentes" className={itemCls(isActive("/reports/respondentes"), true)}>
           <svg className={iconCls(isActive("/reports/respondentes"))} width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M12 12c2.761 0 5-2.239 5-5s-2.239-5-5-5-5 2.239-5 5 2.239 5 5 5zm0 2c-3.314 0-6 1.343-6 3v3h10v-3c0-1.657-2.686-3-6-3z" fill="currentColor" /></svg>
           <span>Respondentes</span>
         </Link>
@@ -157,42 +169,50 @@ export default function SidebarMenu({ horizontal = false }: { horizontal?: boole
         activePaths={["/administrativo", "/empresa"]}
         icon={<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path></svg>}
       >
-        <Link href="/administrativo/colaboradores" className={itemCls(isActive("/administrativo/colaboradores"))}>
+        <Link href="/administrativo/colaboradores" className={itemCls(isActive("/administrativo/colaboradores"), true)}>
+          <svg className={iconCls(isActive("/administrativo/colaboradores"))} width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2M9 7a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg>
           <span>Colaboradores</span>
         </Link>
-        <Link href="/administrativo/diretoria" className={itemCls(isActive("/administrativo/diretoria"))}>
+        <Link href="/administrativo/diretoria" className={itemCls(isActive("/administrativo/diretoria"), true)}>
+          <svg className={iconCls(isActive("/administrativo/diretoria"))} width="16" height="16" viewBox="0 0 24 24" fill="none"><rect x="2" y="7" width="20" height="14" rx="2" ry="2" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg>
           <span>Diretoria</span>
         </Link>
-        <Link href="/empresa" className={itemCls(isActive("/empresa"))}>
+        <Link href="/empresa" className={itemCls(isActive("/empresa"), true)}>
+          <svg className={iconCls(isActive("/empresa"))} width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M3 21h18M3 7v1a3 3 0 0 0 6 0V7m0 1a3 3 0 0 0 6 0V7m0 1a3 3 0 0 0 6 0V7M4 21V10m5 11V10m5 11V10m5 11V10" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg>
           <span>Empresa</span>
         </Link>
-        <Link href="/administrativo/fornecedores" className={itemCls(isActive("/administrativo/fornecedores"))}>
+        <Link href="/administrativo/fornecedores" className={itemCls(isActive("/administrativo/fornecedores"), true)}>
+          <svg className={iconCls(isActive("/administrativo/fornecedores"))} width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path></svg>
           <span>Fornecedores</span>
         </Link>
-        <Link href="/administrativo/gestao" className={itemCls(isActive("/administrativo/gestao"))}>
+        <Link href="/administrativo/gestao" className={itemCls(isActive("/administrativo/gestao"), true)}>
+          <svg className={iconCls(isActive("/administrativo/gestao"))} width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /><polyline points="22 4 12 14.01 9 11.01" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg>
           <span>Gestão</span>
         </Link>
-        <Link href="/administrativo/inventario" className={itemCls(isActive("/administrativo/inventario"))}>
+        <Link href="/administrativo/inventario" className={itemCls(isActive("/administrativo/inventario"), true)}>
+          <svg className={iconCls(isActive("/administrativo/inventario"))} width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline><line x1="12" y1="22.08" x2="12" y2="12"></line></svg>
           <span>Inventário</span>
         </Link>
-        <Link href="/administrativo/parceiros" className={itemCls(isActive("/administrativo/parceiros"))}>
+        <Link href="/administrativo/parceiros" className={itemCls(isActive("/administrativo/parceiros"), true)}>
+          <svg className={iconCls(isActive("/administrativo/parceiros"))} width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2M9 7a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM16 3.13a4 4 0 0 1 0 7.75" /></svg>
           <span>Parceiros</span>
         </Link>
       </CollapsibleSection>
 
-      <CollapsibleSection
-        horizontal={horizontal}
-        title="Configurações"
-        activePaths={["/settings"]}
-        icon={<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a 1.65 1.65 0 0 0 -1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>}
-      >
-        <Link href="/settings/users" className={itemCls(isActive("/settings/users"))}>
-          <span>Usuários</span>
-        </Link>
-        <Link href="/settings/integrations" className={itemCls(isActive("/settings/integrations"))}>
-          <span>Integrações</span>
-        </Link>
-      </CollapsibleSection>
+      {/* Only show Configurações for ramon.naciff@gmail.com */}
+      {userEmail === 'ramon.naciff@gmail.com' && (
+        <CollapsibleSection
+          horizontal={horizontal}
+          title="Configurações"
+          activePaths={["/settings"]}
+          icon={<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a 1.65 1.65 0 0 0 -1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>}
+        >
+          <Link href="/settings/users" className={itemCls(isActive("/settings/users"), true)}>
+            <svg className={iconCls(isActive("/settings/users"))} width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="7" r="4"></circle><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path></svg>
+            <span>Geral</span>
+          </Link>
+        </CollapsibleSection>
+      )}
     </div>
   );
 }

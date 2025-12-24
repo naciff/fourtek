@@ -162,7 +162,7 @@ export default function DashboardInteractive({ clients, systems }: { clients: Ar
   }, [filtered]);
 
   return (
-    <div className="grid sm:grid-cols-3 gap-4">
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
       <div className="relative rounded-lg border border-gray-300 bg-white px-4 py-4 pt-5 dark:bg-gray-800 dark:border-gray-600">
         <div className="absolute top-0 left-2 -translate-y-1/2 bg-white px-1 text-xs text-brand-green-700 dark:bg-gray-800 dark:text-brand-green-500">
           Clientes por Situação
@@ -204,10 +204,10 @@ export default function DashboardInteractive({ clients, systems }: { clients: Ar
       </div>
 
       {(systems && systems.labels.length) ? (
-        <div className="sm:col-span-3 grid sm:grid-cols-2 gap-4">
+        <>
           <div className="relative rounded-lg border border-gray-300 bg-white px-4 py-4 pt-5 dark:bg-gray-800 dark:border-gray-600">
             <div className="absolute top-0 left-2 -translate-y-1/2 bg-white px-1 text-xs text-brand-green-700 dark:bg-gray-800 dark:text-brand-green-500">
-              Clientes por Sistemas (Ativos)
+              Sistemas (Ativos)
             </div>
             <div className="mt-1">
               <PieInteractive
@@ -228,7 +228,7 @@ export default function DashboardInteractive({ clients, systems }: { clients: Ar
           </div>
           <div className="relative rounded-lg border border-gray-300 bg-white px-4 py-4 pt-5 dark:bg-gray-800 dark:border-gray-600">
             <div className="absolute top-0 left-2 -translate-y-1/2 bg-white px-1 text-xs text-brand-green-700 dark:bg-gray-800 dark:text-brand-green-500">
-              Clientes por Tipo de Empresa
+              Tipo de Empresa
             </div>
             <div className="mt-1">
               <PieInteractive
@@ -239,11 +239,11 @@ export default function DashboardInteractive({ clients, systems }: { clients: Ar
               />
             </div>
           </div>
-        </div>
+        </>
       ) : (
-        <div className="relative rounded-lg border border-gray-300 bg-white px-4 py-4 pt-5 sm:col-span-3 dark:bg-gray-800 dark:border-gray-600">
+        <div className="relative rounded-lg border border-gray-300 bg-white px-4 py-4 pt-5 dark:bg-gray-800 dark:border-gray-600 lg:col-span-2">
           <div className="absolute top-0 left-2 -translate-y-1/2 bg-white px-1 text-xs text-brand-green-700 dark:bg-gray-800 dark:text-brand-green-500">
-            Clientes por Tipo de Empresa
+            Tipo de Empresa
           </div>
           <div className="mt-1">
             <PieInteractive
@@ -257,7 +257,7 @@ export default function DashboardInteractive({ clients, systems }: { clients: Ar
       )}
 
       {filter?.type ? (
-        <div className="relative sm:col-span-3 rounded-lg border border-gray-300 bg-white px-4 py-4 pt-5 dark:bg-gray-800 dark:border-gray-700">
+        <div className="relative col-span-1 sm:col-span-2 lg:col-span-5 rounded-lg border border-gray-300 bg-white px-4 py-4 pt-5 dark:bg-gray-800 dark:border-gray-700">
           <div className="absolute top-0 left-2 -translate-y-1/2 bg-white px-1 text-xs text-brand-green-700 dark:bg-gray-800 dark:text-brand-green-500 flex justify-between w-[calc(100%-16px)]">
             <span>Resultados</span>
           </div>

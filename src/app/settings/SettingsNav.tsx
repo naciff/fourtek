@@ -23,8 +23,8 @@ export function SettingsNav() {
 
     return (
         <div className="flex space-x-8">
-            <TabLink href="/settings/reports" label="Configuração Relatórios" disabled />
-            <TabLink href="/settings/users" label="Usuários Cadastrados" />
+            <TabLink href="/settings/users" label="Usuários" />
+            <TabLink href="/settings/reports" label="Relatórios" />
             <TabLink href="/settings/integrations" label="Integrações" />
         </div>
     );

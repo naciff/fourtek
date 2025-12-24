@@ -22,7 +22,9 @@ export default async function ClientsListPage({ searchParams }: { searchParams?:
   const viewId = searchParams?.view || "";
   const layout = searchParams?.layout === "list" ? "list" : "grid";
   const pageSizeRaw = parseInt(searchParams?.pageSize || "15");
-  const pageSize = [15, 30, 50, 100].includes(pageSizeRaw) ? pageSizeRaw : 15;
+  // In grid mode, fetch ALL clients so ClientGrid can sort by favorites and show top 8
+  // In list mode, use pagination normally  
+  const pageSize = layout === "grid" ? 1000 : ([15, 30, 50, 100].includes(pageSizeRaw) ? pageSizeRaw : 15);
 
   const { clients, count, totalPages } = await getClients(supabase, {
     q,
@@ -172,17 +174,20 @@ export default async function ClientsListPage({ searchParams }: { searchParams?:
             </div>
           )}
 
-          <div className="flex-shrink-0">
-            <Pagination
-              pathname="/clients"
-              params={{ q, situation: situationFilter, state: stateFilter, serviceId, layout }}
-              page={page}
-              pageSize={pageSize}
-              totalPages={totalPages}
-              count={count ?? 0}
-              sizes={[15, 30, 50, 100]}
-            />
-          </div>
+          {/* Only show pagination in list view, not in grid */}
+          {layout !== "grid" && (
+            <div className="flex-shrink-0">
+              <Pagination
+                pathname="/clients"
+                params={{ q, situation: situationFilter, state: stateFilter, serviceId, layout }}
+                page={page}
+                pageSize={pageSize}
+                totalPages={totalPages}
+                count={count ?? 0}
+                sizes={[15, 30, 50, 100]}
+              />
+            </div>
+          )}
         </div>
       </div>
 

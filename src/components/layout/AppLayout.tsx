@@ -6,6 +6,7 @@ import { useLayout } from "./LayoutContext";
 import SidebarMenu from "./SidebarMenu";
 import SidebarCollapse from "./SidebarCollapse";
 import { DateDisplay, FullscreenToggle, NotificationBell, PrivacyToggle, SettingsDrawer, ThemeToggle, UserDropdown } from "./HeaderComponents";
+import PresenceTracker from "./PresenceTracker";
 
 interface AppLayoutProps {
     children: ReactNode;
@@ -51,6 +52,7 @@ export function AppLayout({
 
     return (
         <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex flex-col transition-colors duration-300">
+            {hasSession && <PresenceTracker />}
             {/* Header */}
             {hasSession && settings.header.visible && (
                 <header
@@ -72,7 +74,7 @@ export function AppLayout({
                         <div className="w-px h-6 bg-black/5 dark:bg-white/5 mx-2" />
                         <PrivacyToggle />
                         <ThemeToggle />
-                        <UserDropdown displayName={displayName} avatarUrl={avatarUrl} />
+                        <UserDropdown displayName={displayName} avatarUrl={avatarUrl} userEmail={userEmail} />
                     </div>
                 </header>
             )}
@@ -87,20 +89,20 @@ export function AppLayout({
             {/* Sidebar */}
             {isSideNav && (
                 <aside
-                    className={`fixed left-0 top-0 bottom-0 z-50 transition-all duration-300 overflow-hidden ${sidebarBg} ${sidebarWidth} ${isFlat ? 'shadow-none' : 'shadow-2xl'}`}
+                    className={`fixed left-0 top-0 bottom-0 z-50 flex flex-col transition-all duration-300 overflow-hidden ${sidebarBg} ${sidebarWidth} ${isFlat ? 'shadow-none' : 'shadow-2xl'}`}
                 >
                     {/* Sidebar Logo */}
                     <div className={`h-[52px] flex items-center justify-center px-4 border-b shrink-0 overflow-hidden ${sidebarBorder}`}>
                         {settings.nav.collapsed ? (
-                            <img src={logoSymbolSrc} alt="Logo" className="h-8 min-w-[32px] mx-auto" />
+                            <img src={logoSymbolSrc} alt="Logo" className="h-10 min-w-[40px] mx-auto object-contain" style={{ imageRendering: 'crisp-edges' }} />
                         ) : (
                             isLightSidebar ? (
                                 <div className="flex items-center gap-2">
-                                    <img src={logoSymbolSrc} alt="Logo" className="h-8 w-8" />
-                                    <span className="text-xl font-black tracking-tighter text-brand-blue-600">FOURTEK</span>
+                                    <img src={logoSymbolSrc} alt="Logo" className="h-10 w-10 object-contain" style={{ imageRendering: 'crisp-edges' }} />
+                                    <span className="text-3xl font-black tracking-tighter text-brand-blue-600">FOURTEK</span>
                                 </div>
                             ) : (
-                                <img src="/fourtek-logo-white.png" alt="FourTek" className="h-8 object-contain" />
+                                <img src="/fourtek-logo-white.png" alt="FourTek" className="h-10 object-contain" style={{ imageRendering: 'crisp-edges' }} />
                             )
                         )}
                     </div>
@@ -134,9 +136,11 @@ export function AppLayout({
                                         <Link href="/clients" className={`p-2 rounded-lg transition-colors group/tool ${isLightSidebar ? 'bg-transparent hover:bg-black/5' : 'bg-transparent hover:bg-white/10'}`} title="Clientes">
                                             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={`${isLightSidebar ? 'text-gray-400 group-hover/tool:text-brand-blue-600' : 'text-white/40 group-hover/tool:text-brand-green-400'}`}><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
                                         </Link>
-                                        <button onClick={() => window.dispatchEvent(new CustomEvent("open-settings"))} className={`p-2 rounded-lg transition-colors group/tool ${isLightSidebar ? 'bg-transparent hover:bg-black/5' : 'bg-transparent hover:bg-white/10'}`} title="Configurações">
-                                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={`${isLightSidebar ? 'text-gray-400 group-hover/tool:text-brand-blue-600' : 'text-white/40 group-hover/tool:text-brand-green-400'}`}><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
-                                        </button>
+                                        {userEmail === 'ramon.naciff@gmail.com' && (
+                                            <button onClick={() => window.dispatchEvent(new CustomEvent("open-settings"))} className={`p-2 rounded-lg transition-colors group/tool ${isLightSidebar ? 'bg-transparent hover:bg-black/5' : 'bg-transparent hover:bg-white/10'}`} title="Configurações">
+                                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={`${isLightSidebar ? 'text-gray-400 group-hover/tool:text-brand-blue-600' : 'text-white/40 group-hover/tool:text-brand-green-400'}`}><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+                                            </button>
+                                        )}
                                         <form action="/auth/logout" method="post">
                                             <button type="submit" className={`p-2 rounded-lg transition-colors group/tool ${isLightSidebar ? 'bg-transparent hover:bg-black/5' : 'bg-transparent hover:bg-white/10'}`} title="Sair">
                                                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={`${isLightSidebar ? 'text-gray-400 group-hover/tool:text-red-500' : 'text-white/40 group-hover/tool:text-red-400'}`}><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
@@ -162,31 +166,33 @@ export function AppLayout({
 
             {/* Main Content */}
             <main
-                className={`flex-1 flex flex-col transition-all duration-300 ${mainMargin} ${!settings.header.visible ? "mt-0" : ""} ${isTopNav && settings.header.visible ? (settings.header.position === 'fixed' ? 'pt-[92px]' : '') : (hasSession && settings.header.visible && settings.header.position === 'fixed' ? 'pt-[52px]' : '')}`}
+                className={`flex-1 flex flex-col transition-all duration-300 ${mainMargin} ${!settings.header.visible ? "mt-0" : ""} ${isTopNav && settings.header.visible ? (settings.header.position === 'fixed' ? 'pt-[92px]' : '') : (hasSession && settings.header.visible && settings.header.position === 'fixed' ? 'pt-[52px]' : '')} ${settings.footer.position === 'fixed' ? 'pb-20' : ''}`}
             >
                 <div className={`flex-1 p-6 ${isFlat ? 'p-8' : ''}`}>
                     {children}
                 </div>
+            </main>
 
-                {/* Footer */}
-                {hasSession && settings.footer.visible && (
-                    <footer
-                        className={`${footerBase} ${footerPosClass} transition-all z-30 ${headerPadding} ${isFlat ? 'shadow-none' : 'shadow-inner'}`}
-                    >
-                        <div className="flex flex-col md:flex-row justify-between items-center gap-4">
-                            <div>&copy; {new Date().getFullYear()} Fourtek Systems. Todos os direitos reservados.</div>
-                            <div className="flex items-center gap-4">
-                                <span className="">Versão {version}</span>
-                                <div className="flex items-center gap-6">
-                                    <Link href="/privacy" className="hover:text-brand-blue-600 transition-colors">Privacidade</Link>
-                                    <Link href="/terms" className="hover:text-brand-blue-600 transition-colors">Termos</Link>
-                                    <Link href="/support" className="hover:text-brand-blue-600 transition-colors">Suporte</Link>
-                                </div>
+            {/* Footer - moved outside main for fixed positioning */}
+            {hasSession && settings.footer.visible && (
+                <footer
+                    className={`${footerBase} ${footerPosClass} transition-all z-30 ${headerPadding} ${isFlat ? 'shadow-none' : 'shadow-inner'}`}
+                >
+                    <div className="relative flex flex-col md:flex-row items-center justify-center md:justify-end w-full text-xs text-gray-400 gap-4">
+                        <div className="md:absolute md:left-1/2 md:-translate-x-1/2 font-medium">
+                            &copy; {new Date().getFullYear()} Fourtek Systems. Todos os direitos reservados.
+                        </div>
+                        <div className="flex flex-wrap justify-center items-center gap-x-6 gap-y-2">
+                            <span className="">Versão {version}</span>
+                            <div className="flex items-center gap-6">
+                                <Link href="/privacy" className="hover:text-brand-blue-600 transition-colors">Privacidade</Link>
+                                <Link href="/terms" className="hover:text-brand-blue-600 transition-colors">Termos</Link>
+                                <Link href="/support" className="hover:text-brand-blue-600 transition-colors">Suporte</Link>
                             </div>
                         </div>
-                    </footer>
-                )}
-            </main>
+                    </div>
+                </footer>
+            )}
 
             <SettingsDrawer />
         </div >

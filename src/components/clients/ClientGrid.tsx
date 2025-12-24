@@ -3,6 +3,7 @@
 import Link from "next/link";
 import StatusBadge from "@/components/ui/StatusBadge";
 import { ClientRowActions } from "./ClientRowActions";
+import { useState, useEffect, useMemo } from "react";
 
 interface ClientGridProps {
     clients: any[];
@@ -10,9 +11,61 @@ interface ClientGridProps {
 }
 
 export function ClientGrid({ clients, searchParams }: ClientGridProps) {
+    const [favoriteClients, setFavoriteClients] = useState<string[]>([]);
+
+    // Load favorites from localStorage
+    useEffect(() => {
+        const saved = localStorage.getItem('favorite-clients');
+        if (saved) {
+            try {
+                const parsed = JSON.parse(saved);
+                setFavoriteClients(Array.isArray(parsed) ? parsed : []);
+            } catch (e) {
+                console.error(e);
+            }
+        }
+    }, []);
+
+    const toggleFavorite = (clientId: string, e: React.MouseEvent) => {
+        e.preventDefault();
+        e.stopPropagation();
+
+        const isFavorite = favoriteClients.includes(clientId);
+        let newFavorites: string[];
+
+        if (isFavorite) {
+            // Remove from favorites
+            newFavorites = favoriteClients.filter(id => id !== clientId);
+            console.log('Removing from favorites:', clientId);
+        } else {
+            // Add to favorites (max 8)
+            if (favoriteClients.length >= 8) {
+                alert('Você já tem 8 clientes favoritos. Remova um favorito antes de adicionar outro.');
+                return;
+            }
+            newFavorites = [...favoriteClients, clientId];
+            console.log('Adding to favorites:', clientId);
+        }
+
+        setFavoriteClients(newFavorites);
+        localStorage.setItem('favorite-clients', JSON.stringify(newFavorites));
+    };
+
+    // Separate favorites and non-favorites with useMemo to ensure reactivity
+    const orderedClients = useMemo(() => {
+        console.log('Reordering clients. Favorites:', favoriteClients);
+        const favoriteClientsList = clients.filter(c => favoriteClients.includes(c.id));
+        const nonFavoriteClientsList = clients.filter(c => !favoriteClients.includes(c.id));
+        console.log('Favorite clients count:', favoriteClientsList.length);
+        console.log('Non-favorite clients count:', nonFavoriteClientsList.length);
+        const ordered = [...favoriteClientsList, ...nonFavoriteClientsList];
+        // Show only first 8 clients in grid
+        return ordered.slice(0, 8);
+    }, [clients, favoriteClients]);
+
     return (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 p-4 overflow-y-auto min-h-0 bg-gray-50 dark:bg-gray-900">
-            {clients.map((c) => {
+            {orderedClients.map((c) => {
                 const getInitials = (name: string) => {
                     const parts = name.trim().split(' ').filter(Boolean);
                     if (parts.length === 0) return '?';
@@ -33,15 +86,38 @@ export function ClientGrid({ clients, searchParams }: ClientGridProps) {
                 const colorIndex = (c.id.charCodeAt(0) || 0) % colors.length;
                 const avatarClass = colors[colorIndex];
                 const contractFormatted = String(c.client_contract).padStart(2, '0');
+                const isFavorite = favoriteClients.includes(c.id);
 
                 return (
                     <div key={c.id} className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm hover:shadow-md transition-all p-5 flex flex-col relative group h-full">
-                        {/* Header: Avatar + Actions */}
+                        {/* Header: Avatar + Star + Actions */}
                         <div className="flex justify-between items-start mb-4">
                             <div className={`w-12 h-12 rounded-full flex items-center justify-center text-sm font-bold ${avatarClass} flex-shrink-0`}>
                                 {initials}
                             </div>
-                            <ClientRowActions clientId={c.id} contractNumber={c.client_contract} />
+                            <div className="flex items-center gap-1">
+                                {/* Star button */}
+                                <button
+                                    onMouseDown={(e) => toggleFavorite(c.id, e)}
+                                    className="p-1.5 hover:bg-gray-100 dark:hover:bg-gray-600 rounded transition-colors"
+                                    title={isFavorite ? "Remover dos favoritos" : "Adicionar aos favoritos"}
+                                >
+                                    <svg
+                                        width="18"
+                                        height="18"
+                                        viewBox="0 0 24 24"
+                                        fill={isFavorite ? "#FFA500" : "none"}
+                                        stroke={isFavorite ? "#FFA500" : "currentColor"}
+                                        strokeWidth="2"
+                                        strokeLinecap="round"
+                                        strokeLinejoin="round"
+                                        className="transition-all pointer-events-none"
+                                    >
+                                        <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+                                    </svg>
+                                </button>
+                                <ClientRowActions clientId={c.id} contractNumber={c.client_contract} />
+                            </div>
                         </div>
 
                         {/* Content */}

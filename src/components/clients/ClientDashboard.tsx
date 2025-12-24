@@ -68,7 +68,13 @@ function SortableWidget({ id, children, className = "" }: { id: string, children
     );
 }
 
-function Card({ title, action, children, icon: Icon, className = "" }: { title: string, action?: React.ReactNode, children: React.ReactNode, icon?: any, className?: string }) {
+
+function Card({ title, action, children, icon: Icon, className = "", cardId, globalCollapsed }: { title: string, action?: React.ReactNode, children: React.ReactNode, icon?: any, className?: string, cardId?: string, globalCollapsed?: boolean }) {
+    const [collapsed, setCollapsed] = useState(false);
+
+    // Use global collapse state if provided and override local state
+    const isCollapsed = globalCollapsed !== undefined ? globalCollapsed : collapsed;
+
     return (
         <div className={`bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm hover:shadow-md transition-shadow h-full flex flex-col ${className}`}>
             <div className="px-5 py-4 border-b border-gray-50 dark:border-gray-700/50 flex justify-between items-center cursor-move">
@@ -76,11 +82,32 @@ function Card({ title, action, children, icon: Icon, className = "" }: { title: 
                     {Icon && <Icon className="w-4 h-4 text-gray-400 dark:text-gray-500" />}
                     <h3 className="font-semibold text-gray-900 dark:text-gray-100 text-sm">{title}</h3>
                 </div>
-                {action}
+                <div className="flex items-center gap-2">
+                    {action}
+                    {cardId && (
+                        <button
+                            onClick={(e) => { e.stopPropagation(); setCollapsed(!collapsed); }}
+                            className="p-1.5 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-md transition-colors"
+                            title={isCollapsed ? "Expandir" : "Recolher"}
+                        >
+                            <svg
+                                className={`w-4 h-4 transition-transform ${isCollapsed ? 'rotate-180' : ''}`}
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="currentColor"
+                                strokeWidth="2"
+                            >
+                                <path d="m18 15-6-6-6 6" />
+                            </svg>
+                        </button>
+                    )}
+                </div>
             </div>
-            <div className="p-5 flex-1 cursor-default" onPointerDown={(e) => e.stopPropagation()}>
-                {children}
-            </div>
+            {!isCollapsed && (
+                <div className="p-5 flex-1 cursor-default" onPointerDown={(e) => e.stopPropagation()}>
+                    {children}
+                </div>
+            )}
         </div>
     );
 }
@@ -104,7 +131,7 @@ const WIDGETS = [
     { id: 'address', label: 'Endereço Principal' },
     { id: 'dates', label: 'Datas Importantes' },
     { id: 'contacts', label: 'Contatos Associados' },
-    { id: 'services', label: 'Resumo Services' },
+    { id: 'services', label: 'Resumo de Serviços' },
     { id: 'financial', label: 'Financeiro' },
     { id: 'access', label: 'Dados de Acesso' },
     { id: 'inventory', label: 'Inventário' },
@@ -179,7 +206,29 @@ export function ClientDashboard({ clientId }: { clientId: string }) {
     // Drag and Drop Ordery
     const [widgetOrder, setWidgetOrder] = useState<string[]>(WIDGETS.map(w => w.id));
 
+    // Card Collapse State
+    const [collapsedCards, setCollapsedCards] = useState<Record<string, boolean>>({});
+    const [allCollapsed, setAllCollapsed] = useState(false);
+
+    const toggleCardCollapse = (cardId: string) => {
+        setCollapsedCards(prev => ({ ...prev, [cardId]: !prev[cardId] }));
+    };
+
+    const toggleAllCards = () => {
+        const newState = !allCollapsed;
+        setAllCollapsed(newState);
+        // Update individual card states
+        const newCollapsed: Record<string, boolean> = {};
+        WIDGETS.forEach(w => {
+            newCollapsed[w.id] = newState;
+        });
+        setCollapsedCards(newCollapsed);
+    };
+
     const [showSettings, setShowSettings] = useState(false);
+
+    // Favorites State
+    const [favoriteWidgets, setFavoriteWidgets] = useState<string[]>([]);
 
     // Load saved preferences
     useEffect(() => {
@@ -205,10 +254,43 @@ export function ClientDashboard({ clientId }: { clientId: string }) {
         }
     }, []);
 
+    // Load favorites specific to this client
+    useEffect(() => {
+        const favKey = `dashboard-favorites-${clientId}`;
+        const savedFavorites = localStorage.getItem(favKey);
+        if (savedFavorites) {
+            try {
+                const parsed = JSON.parse(savedFavorites);
+                setFavoriteWidgets(Array.isArray(parsed) ? parsed : []);
+            } catch (e) { console.error(e); }
+        }
+    }, [clientId]);
+
     const toggleWidget = (id: string) => {
         const newState = { ...visibleWidgets, [id]: !visibleWidgets[id] };
         setVisibleWidgets(newState);
         localStorage.setItem('client_dashboard_widgets', JSON.stringify(newState));
+    };
+
+    const toggleFavorite = (id: string) => {
+        const isFavorite = favoriteWidgets.includes(id);
+        let newFavorites: string[];
+
+        if (isFavorite) {
+            // Remove from favorites
+            newFavorites = favoriteWidgets.filter(fId => fId !== id);
+        } else {
+            // Add to favorites (max 8)
+            if (favoriteWidgets.length >= 8) {
+                alert('Você já tem 8 favoritos. Remova um favorito antes de adicionar outro.');
+                return;
+            }
+            newFavorites = [...favoriteWidgets, id];
+        }
+
+        setFavoriteWidgets(newFavorites);
+        const favKey = `dashboard-favorites-${clientId}`;
+        localStorage.setItem(favKey, JSON.stringify(newFavorites));
     };
 
     // Drag Sensors
@@ -256,12 +338,54 @@ export function ClientDashboard({ clientId }: { clientId: string }) {
 
     const hiddenCount = WIDGETS.filter(w => !visibleWidgets[w.id]).length;
 
+    // Helper function to create contextual edit buttons based on card type
+    const getEditButtonForCard = (cardType: string) => {
+        const tabMap: Record<string, string> = {
+            'profile': 'Empresa',
+            'address': 'Endereço',
+            'contacts': 'Contatos',
+            'services': 'servidores',  // Opens servers tab for services
+            'financial': 'Contrato',
+            'access': 'acesso',
+            'inventory': 'inventario',
+            'servers': 'servidores',
+            'systems': 'sistemas',
+            'prov74': 'prov74',
+            'pcn': 'pcn',
+            'reports': 'relatorios',
+            'additional': 'dadosadicionais',
+            'dates': 'Contrato',
+            'representatives': 'Representante'
+        };
+
+        const tab = tabMap[cardType];
+        const isSubTab = ['Empresa', 'Endereço', 'Contatos', 'Representante', 'Serviços', 'Sistemas', 'Contrato'].includes(tab);
+
+        const href = tab
+            ? (isSubTab
+                ? `/clients/${clientId}?mode=edit&subtab=${encodeURIComponent(tab)}`
+                : `/clients/${clientId}?mode=edit&tab=${tab}`)
+            : `/clients/${clientId}?mode=edit`;
+
+        return (
+            <Link
+                href={href}
+                className="p-1.5 text-gray-400 hover:text-brand-blue-600 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-md transition-colors"
+                title="Editar / Ver Completo"
+            >
+                <Icons.Edit className="w-4 h-4" />
+            </Link>
+        );
+    };
+
     // Render Logic for individual widgets
     const renderWidgetContent = (id: string) => {
+        const cardCollapsed = collapsedCards[id];
+
         switch (id) {
             case 'profile':
                 return (
-                    <Card title="Perfil do Cliente" icon={Icons.User} action={EditButton} className="!h-fit">
+                    <Card title="Perfil do Cliente" icon={Icons.User} action={getEditButtonForCard('profile')} className="!h-fit" cardId="profile" globalCollapsed={cardCollapsed}>
                         <div className="flex flex-col items-center mb-6">
                             <h3 className="font-bold text-gray-900 dark:text-white text-lg text-center">{client.corporate_name}</h3>
                             <p className="text-sm text-gray-500 text-center">{client.company_type}</p>
@@ -278,7 +402,7 @@ export function ClientDashboard({ clientId }: { clientId: string }) {
                 );
             case 'address':
                 return (
-                    <Card title="Endereço Principal" icon={Icons.MapPin} action={EditButton}>
+                    <Card title="Endereço Principal" icon={Icons.MapPin} action={getEditButtonForCard('address')} cardId="address" globalCollapsed={cardCollapsed}>
                         <div className="mb-4 p-3 bg-gray-50 dark:bg-gray-700/30 rounded-lg text-sm text-gray-600 dark:text-gray-300">
                             {client.street}, {client.number}
                             {client.complement && ` - ${client.complement}`}<br />
@@ -296,7 +420,7 @@ export function ClientDashboard({ clientId }: { clientId: string }) {
                 );
             case 'dates':
                 return (
-                    <Card title="Datas Importantes" icon={Icons.Calendar} action={EditButton}>
+                    <Card title="Datas Importantes" icon={Icons.Calendar} action={getEditButtonForCard('dates')} cardId="dates" globalCollapsed={cardCollapsed}>
                         <div className="space-y-3">
                             <DetailRow label="Data Contrato" value={client.contract_date ? new Date(client.contract_date).toLocaleDateString() : null} />
                             <DetailRow label="Instalação" value={client.installation_date ? new Date(client.installation_date).toLocaleDateString() : null} />
@@ -307,7 +431,7 @@ export function ClientDashboard({ clientId }: { clientId: string }) {
                 );
             case 'contacts':
                 return (
-                    <Card title="Contatos Associados" icon={Icons.User} action={EditButton}>
+                    <Card title="Contatos Associados" icon={Icons.User} action={getEditButtonForCard('contacts')} cardId="contacts" globalCollapsed={cardCollapsed}>
                         {contacts.length > 0 ? (
                             <div className="space-y-4">
                                 {contacts.map((c: any) => (
@@ -328,8 +452,19 @@ export function ClientDashboard({ clientId }: { clientId: string }) {
                     </Card>
                 );
             case 'services':
+                // Custom Edit Button for Services that opens the Servers tab
+                const ServicesEditButton = (
+                    <Link
+                        href={`/clients/${clientId}?mode=edit&tab=servidores`}
+                        className="p-1.5 text-gray-400 hover:text-brand-blue-600 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-md transition-colors"
+                        title="Editar Servidores / VMs"
+                    >
+                        <Icons.Edit className="w-4 h-4" />
+                    </Link>
+                );
+
                 return (
-                    <Card title="Resumo Services" icon={Icons.Briefcase} action={EditButton}>
+                    <Card title="Resumo de Serviços" icon={Icons.Briefcase} action={ServicesEditButton} cardId="services" globalCollapsed={cardCollapsed}>
                         <div className="space-y-4">
                             <div className="flex flex-wrap gap-2">
                                 {services.length > 0 ? services.map((s: any, i: number) => (
@@ -339,27 +474,50 @@ export function ClientDashboard({ clientId }: { clientId: string }) {
                                 )) : <span className="text-sm text-gray-400 italic">Nenhum serviço</span>}
                             </div>
 
-                            {(serversData.length > 0 || serversData.some((s: any) => s.server_vms?.length > 0)) && (
-                                <div className="flex items-center gap-4 pt-3 border-t border-gray-100 dark:border-gray-700">
-                                    <div className="flex items-center gap-2">
+                            {serversData.length > 0 && (
+                                <div className="flex items-start justify-between gap-2 pt-3 border-t border-gray-100 dark:border-gray-700">
+                                    {/* Servidores: apenas Ferrari e Porsche */}
+                                    <div className="flex flex-col items-center gap-1 flex-1">
                                         <div className="p-1.5 rounded-md bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300">
                                             <Icons.Server className="w-3.5 h-3.5" />
                                         </div>
-                                        <div className="flex flex-col leading-none">
-                                            <span className="text-[10px] text-gray-500 uppercase font-semibold">Servidores</span>
-                                            <span className="text-sm font-bold text-gray-900 dark:text-white">{serversData.length}</span>
-                                        </div>
+                                        <span className="text-[10px] text-gray-500 uppercase font-semibold text-center leading-tight">Servidores</span>
+                                        <span className="text-xl font-bold text-gray-900 dark:text-white">
+                                            {serversData.filter((s: any) => ['Ferrari', 'Porsche'].includes(s.hostname)).length}
+                                        </span>
                                     </div>
-                                    <div className="flex items-center gap-2">
+
+                                    {/* VMs */}
+                                    <div className="flex flex-col items-center gap-1 flex-1">
                                         <div className="p-1.5 rounded-md bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300">
                                             <Icons.Cpu className="w-3.5 h-3.5" />
                                         </div>
-                                        <div className="flex flex-col leading-none">
-                                            <span className="text-[10px] text-gray-500 uppercase font-semibold">VMs</span>
-                                            <span className="text-sm font-bold text-gray-900 dark:text-white">
-                                                {serversData.reduce((acc: number, s: any) => acc + (s.server_vms?.length || 0), 0)}
-                                            </span>
+                                        <span className="text-[10px] text-gray-500 uppercase font-semibold text-center leading-tight">VMs</span>
+                                        <span className="text-xl font-bold text-gray-900 dark:text-white">
+                                            {serversData.reduce((acc: number, s: any) => acc + (s.server_vms?.length || 0), 0)}
+                                        </span>
+                                    </div>
+
+                                    {/* Firewall: apenas Corvette (Firewall) */}
+                                    <div className="flex flex-col items-center gap-1 flex-1">
+                                        <div className="p-1.5 rounded-md bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300">
+                                            <Icons.Shield className="w-3.5 h-3.5" />
                                         </div>
+                                        <span className="text-[10px] text-gray-500 uppercase font-semibold text-center leading-tight">Firewall</span>
+                                        <span className="text-xl font-bold text-gray-900 dark:text-white">
+                                            {serversData.filter((s: any) => s.hostname === 'Corvette (Firewall)').length}
+                                        </span>
+                                    </div>
+
+                                    {/* Storage */}
+                                    <div className="flex flex-col items-center gap-1 flex-1">
+                                        <div className="p-1.5 rounded-md bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300">
+                                            <Icons.Server className="w-3.5 h-3.5" />
+                                        </div>
+                                        <span className="text-[10px] text-gray-500 uppercase font-semibold text-center leading-tight">Storage</span>
+                                        <span className="text-xl font-bold text-gray-900 dark:text-white">
+                                            {serversData.filter((s: any) => s.hostname === 'Storage').length}
+                                        </span>
                                     </div>
                                 </div>
                             )}
@@ -368,7 +526,7 @@ export function ClientDashboard({ clientId }: { clientId: string }) {
                 );
             case 'financial':
                 return (
-                    <Card title="Financeiro" icon={Icons.CreditCard} action={EditButton}>
+                    <Card title="Financeiro" icon={Icons.CreditCard} action={getEditButtonForCard('financial')} cardId="financial" globalCollapsed={cardCollapsed}>
                         <div className="space-y-4">
                             <div className="relative pt-2">
                                 <div className="flex justify-between mb-1">
@@ -394,7 +552,7 @@ export function ClientDashboard({ clientId }: { clientId: string }) {
                 );
             case 'access':
                 return (
-                    <Card title="Dados de Acesso" icon={Icons.Lock} action={EditButton}>
+                    <Card title="Dados de Acesso" icon={Icons.Lock} action={getEditButtonForCard('access')} cardId="access" globalCollapsed={cardCollapsed}>
                         {accessData.length > 0 ? (
                             <div className="space-y-3">
                                 {accessData.map((d: any) => (
@@ -416,7 +574,7 @@ export function ClientDashboard({ clientId }: { clientId: string }) {
                 );
             case 'inventory':
                 return (
-                    <Card title="Inventário" icon={Icons.Monitor} action={EditButton}>
+                    <Card title="Inventário" icon={Icons.Monitor} action={getEditButtonForCard('inventory')} cardId="inventory" globalCollapsed={cardCollapsed}>
                         {inventoryData.length > 0 ? (
                             <div className="overflow-x-auto">
                                 <table className="w-full text-sm text-left">
@@ -443,7 +601,7 @@ export function ClientDashboard({ clientId }: { clientId: string }) {
                 );
             case 'servers':
                 return (
-                    <Card title="Servidores & VMs" icon={Icons.Server} action={EditButton}>
+                    <Card title="Servidores & VMs" icon={Icons.Server} action={getEditButtonForCard('servers')} cardId="servers" globalCollapsed={cardCollapsed}>
                         {serversData.length > 0 ? (
                             <div className="space-y-4">
                                 {serversData.map((srv: any) => (
@@ -481,7 +639,7 @@ export function ClientDashboard({ clientId }: { clientId: string }) {
                 );
             case 'systems':
                 return (
-                    <Card title="Sistemas Utilizados" icon={Icons.Cpu} action={EditButton}>
+                    <Card title="Sistemas Utilizados" icon={Icons.Cpu} action={getEditButtonForCard('systems')} cardId="systems" globalCollapsed={cardCollapsed}>
                         {systemsData.length > 0 ? (
                             <div className="flex flex-wrap gap-2">
                                 {systemsData.map((s: any, i: number) => (
@@ -497,7 +655,7 @@ export function ClientDashboard({ clientId }: { clientId: string }) {
                 );
             case 'prov74':
                 return (
-                    <Card title="CheckList Prov. 74" icon={Icons.Shield} action={EditButton}>
+                    <Card title="CheckList Prov. 74" icon={Icons.Shield} action={getEditButtonForCard('prov74')} cardId="prov74" globalCollapsed={cardCollapsed}>
                         {prov74Data ? (
                             <div className="space-y-4">
                                 <div className="flex items-center justify-between">
@@ -530,7 +688,7 @@ export function ClientDashboard({ clientId }: { clientId: string }) {
                 );
             case 'pcn':
                 return (
-                    <Card title="PCN" icon={Icons.FileText} action={EditButton}>
+                    <Card title="PCN" icon={Icons.FileText} action={getEditButtonForCard('pcn')} cardId="pcn" globalCollapsed={cardCollapsed}>
                         {pcnData ? (
                             <div className="space-y-2">
                                 <DetailRow label="PCN" value={pcnData.pcn ? "Sim" : "Não"} className={pcnData.pcn ? "text-green-600" : "text-gray-400"} />
@@ -550,7 +708,7 @@ export function ClientDashboard({ clientId }: { clientId: string }) {
                 );
             case 'reports':
                 return (
-                    <Card title="Relatórios Recentes" icon={Icons.FileText} action={EditButton}>
+                    <Card title="Relatórios Recentes" icon={Icons.FileText} action={getEditButtonForCard('reports')} cardId="reports" globalCollapsed={cardCollapsed}>
                         {reportsData.length > 0 ? (
                             <div className="space-y-2">
                                 {reportsData.map((r: any) => (
@@ -572,7 +730,7 @@ export function ClientDashboard({ clientId }: { clientId: string }) {
                 );
             case 'additional':
                 return (
-                    <Card title="Dados Adicionais" icon={Icons.MoreHorizontal} action={EditButton}>
+                    <Card title="Dados Adicionais" icon={Icons.MoreHorizontal} action={getEditButtonForCard('additional')} cardId="additional" globalCollapsed={cardCollapsed}>
                         {additionalData.length > 0 ? (
                             <div className="space-y-2">
                                 {additionalData.map((ad: any) => (
@@ -619,6 +777,20 @@ export function ClientDashboard({ clientId }: { clientId: string }) {
 
                 <div className="flex gap-2 relative">
                     <button
+                        onClick={toggleAllCards}
+                        className="inline-flex items-center gap-2 px-4 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 hover:text-brand-blue-600 transition-colors shadow-sm"
+                        title={allCollapsed ? "Expandir Todos" : "Recolher Todos"}
+                    >
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            {allCollapsed ? (
+                                <><path d="m18 15-6-6-6 6" /></>
+                            ) : (
+                                <><path d="m6 9 6 6 6-6" /></>
+                            )}
+                        </svg>
+                        {allCollapsed ? "Expandir Todos" : "Recolher Todos"}
+                    </button>
+                    <button
                         onClick={() => setShowSettings(!showSettings)}
                         className={`inline-flex items-center gap-2 px-4 py-2 bg-white dark:bg-gray-800 border ${showSettings ? 'border-brand-blue-500 ring-1 ring-brand-blue-500' : 'border-gray-200 dark:border-gray-700'} rounded-lg text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 hover:text-brand-blue-600 transition-colors shadow-sm`}
                     >
@@ -629,24 +801,53 @@ export function ClientDashboard({ clientId }: { clientId: string }) {
                     {showSettings && (
                         <div className="absolute top-12 right-0 w-64 max-h-[80vh] overflow-y-auto bg-white dark:bg-gray-800 rounded-xl shadow-xl border border-gray-100 dark:border-gray-700 z-50 p-4 animate-in fade-in slide-in-from-top-2 duration-200">
                             <h3 className="font-bold text-gray-900 dark:text-white mb-3 text-sm flex items-center justify-between sticky top-0 bg-white dark:bg-gray-800 z-10 pb-2 border-b border-gray-100 dark:border-gray-700">
-                                Exibir Widgets
-                                <button onClick={() => setShowSettings(false)} className="text-gray-400 hover:text-gray-600"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 6L6 18M6 6l12 12" /></svg></button>
+                                <span>Exibir Widgets</span>
+                                <div className="flex items-center gap-2">
+                                    <span className="text-xs font-normal text-gray-500 dark:text-gray-400">{favoriteWidgets.length}/8 ★</span>
+                                    <button onClick={() => setShowSettings(false)} className="text-gray-400 hover:text-gray-600"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 6L6 18M6 6l12 12" /></svg></button>
+                                </div>
                             </h3>
                             <div className="space-y-2">
-                                {WIDGETS.map(widget => (
-                                    <label key={widget.id} className="flex items-center gap-3 p-2 hover:bg-gray-50 dark:hover:bg-gray-700/50 rounded-lg cursor-pointer transition-colors">
-                                        <div className={`w-5 h-5 rounded border flex items-center justify-center transition-colors ${visibleWidgets[widget.id] ? 'bg-brand-blue-600 border-brand-blue-600' : 'border-gray-300 dark:border-gray-600'}`}>
-                                            {visibleWidgets[widget.id] && <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>}
+                                {WIDGETS.map(widget => {
+                                    const isFavorite = favoriteWidgets.includes(widget.id);
+                                    return (
+                                        <div key={widget.id} className="flex items-center gap-2 p-2 hover:bg-gray-50 dark:hover:bg-gray-700/50 rounded-lg transition-colors">
+                                            {/* Checkbox for visibility */}
+                                            <label className="flex items-center gap-2 flex-1 cursor-pointer">
+                                                <div className={`w-5 h-5 rounded border flex items-center justify-center transition-colors ${visibleWidgets[widget.id] ? 'bg-brand-blue-600 border-brand-blue-600' : 'border-gray-300 dark:border-gray-600'}`}>
+                                                    {visibleWidgets[widget.id] && <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>}
+                                                </div>
+                                                <input
+                                                    type="checkbox"
+                                                    className="hidden"
+                                                    checked={!!visibleWidgets[widget.id]}
+                                                    onChange={() => toggleWidget(widget.id)}
+                                                />
+                                                <span className="text-sm text-gray-700 dark:text-gray-300 select-none">{widget.label}</span>
+                                            </label>
+                                            {/* Star for favorite */}
+                                            <button
+                                                onClick={(e) => { e.stopPropagation(); toggleFavorite(widget.id); }}
+                                                className="p-1 hover:bg-gray-100 dark:hover:bg-gray-600 rounded transition-colors"
+                                                title={isFavorite ? "Remover dos favoritos" : "Adicionar aos favoritos"}
+                                            >
+                                                <svg
+                                                    width="18"
+                                                    height="18"
+                                                    viewBox="0 0 24 24"
+                                                    fill={isFavorite ? "#FFA500" : "none"}
+                                                    stroke={isFavorite ? "#FFA500" : "currentColor"}
+                                                    strokeWidth="2"
+                                                    strokeLinecap="round"
+                                                    strokeLinejoin="round"
+                                                    className="transition-all"
+                                                >
+                                                    <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+                                                </svg>
+                                            </button>
                                         </div>
-                                        <input
-                                            type="checkbox"
-                                            className="hidden"
-                                            checked={!!visibleWidgets[widget.id]}
-                                            onChange={() => toggleWidget(widget.id)}
-                                        />
-                                        <span className="text-sm text-gray-700 dark:text-gray-300 select-none">{widget.label}</span>
-                                    </label>
-                                ))}
+                                    );
+                                })}
                             </div>
                         </div>
                     )}
@@ -672,11 +873,19 @@ export function ClientDashboard({ clientId }: { clientId: string }) {
                     strategy={rectSortingStrategy}
                 >
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                        {widgetOrder.filter(id => visibleWidgets[id]).map(id => (
-                            <SortableWidget key={id} id={id}>
-                                {renderWidgetContent(id)}
-                            </SortableWidget>
-                        ))}
+                        {(() => {
+                            // Separate favorites and non-favorites, maintaining original order
+                            const visibleIds = widgetOrder.filter(id => visibleWidgets[id]);
+                            const favoriteIds = visibleIds.filter(id => favoriteWidgets.includes(id));
+                            const nonFavoriteIds = visibleIds.filter(id => !favoriteWidgets.includes(id));
+                            const orderedIds = [...favoriteIds, ...nonFavoriteIds];
+
+                            return orderedIds.map(id => (
+                                <SortableWidget key={id} id={id}>
+                                    {renderWidgetContent(id)}
+                                </SortableWidget>
+                            ));
+                        })()}
                     </div>
                 </SortableContext>
             </DndContext>

@@ -193,20 +193,11 @@ export default async function DashboardPage() {
           </div>
         </div>
       </div>
-      <DashboardInteractive clients={clientsForInteractive} systems={{ data: sistemasData, labels: sistemasLabels }} />
-      <div className="relative rounded-lg border border-gray-300 bg-white px-4 py-4 pt-5 dark:bg-gray-800 dark:border-gray-600">
-        <div className="absolute top-0 left-2 -translate-y-1/2 bg-white px-1 text-xs text-brand-green-700 dark:bg-gray-800 dark:text-brand-green-500">
-          Mapa de Clientes
-        </div>
-        <div className="mt-1">
-          <ClientsMap points={withCoords} />
-        </div>
-      </div>
       <div className="relative rounded-lg border border-gray-300 bg-white px-4 py-4 pt-5 dark:bg-gray-800 dark:border-gray-700">
         <div className="absolute top-0 left-2 -translate-y-1/2 bg-white px-1 text-xs text-brand-green-700 dark:bg-gray-800 dark:text-brand-green-500">
           Aniversariantes do mês
         </div>
-        <div className="mt-1 grid gap-2 sm:grid-cols-2">
+        <div className="mt-1 grid gap-2 sm:grid-cols-3">
           {monthBirthdays.length === 0 ? (
             <span className="text-sm text-gray-600">Nenhum aniversariante neste mês</span>
           ) : (
@@ -217,14 +208,24 @@ export default async function DashboardPage() {
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" className="text-green-700"><path d="M20 12v8a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-8h16zm-2-7a3 3 0 0 0-3 3h-1a3 3 0 0 0-3-3c-1.654 0-3 1.346-3 3h-1v3h16V8h-1a3 3 0 0 0-3-3zm-7 0a1 1 0 0 1 1 1v2H9V6a1 1 0 0 1 1-1zm6 0a1 1 0 0 1 1 1v2h-3V6a1 1 0 0 1 1-1z" /></svg>
                 </div>
                 <div className="flex-1">
-                  <div className="text-green-800 font-semibold">{r.name}</div>
+                  <div className="text-green-800 font-semibold text-xs leading-tight">{r.name}</div>
                   {r.clients.length ? (
-                    <div className="text-xs text-gray-700 mt-1">{r.clients.join(", ")}</div>
+                    <div className="text-[10px] text-gray-700 mt-1 leading-tight">{r.clients.join(", ")}</div>
                   ) : null}
                 </div>
               </div>
             ))
           )}
+        </div>
+      </div>
+
+      <DashboardInteractive clients={clientsForInteractive} systems={{ data: sistemasData, labels: sistemasLabels }} />
+      <div className="relative rounded-lg border border-gray-300 bg-white px-4 py-4 pt-5 dark:bg-gray-800 dark:border-gray-600">
+        <div className="absolute top-0 left-2 -translate-y-1/2 bg-white px-1 text-xs text-brand-green-700 dark:bg-gray-800 dark:text-brand-green-500">
+          Mapa de Clientes
+        </div>
+        <div className="mt-1">
+          <ClientsMap points={withCoords} />
         </div>
       </div>
     </div>

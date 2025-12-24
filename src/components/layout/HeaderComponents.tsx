@@ -135,7 +135,7 @@ export function NotificationBell({ count = 5 }: { count?: number }) {
     );
 }
 
-export function UserDropdown({ displayName, avatarUrl }: { displayName: string, avatarUrl?: string }) {
+export function UserDropdown({ displayName, avatarUrl, userEmail }: { displayName: string, avatarUrl?: string, userEmail?: string }) {
     const [open, setOpen] = useState(false);
 
     useEffect(() => {
@@ -171,35 +171,37 @@ export function UserDropdown({ displayName, avatarUrl }: { displayName: string, 
                         <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Minha Conta</span>
                     </div>
 
-                    <div className="p-1.5 space-y-0.5">
+                    <div className="p-1 space-y-0">
                         <a
                             href="/profile"
-                            className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-semibold text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50 hover:text-gray-900 dark:hover:text-white transition-all group"
+                            className="flex items-center gap-3 rounded-lg px-3 py-1.5 text-sm font-semibold text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50 hover:text-gray-900 dark:hover:text-white transition-all group"
                         >
-                            <div className="flex h-10 w-10 items-center justify-center rounded-lg text-gray-500 dark:text-gray-400 group-hover:scale-110 transition-transform">
+                            <div className="flex h-8 w-8 items-center justify-center rounded-lg text-gray-500 dark:text-gray-400 group-hover:scale-110 transition-transform">
                                 <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
                             </div>
                             Perfil
                         </a>
 
-                        <button
-                            onClick={() => {
-                                setOpen(false);
-                                window.dispatchEvent(new CustomEvent("open-settings"));
-                            }}
-                            className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-semibold text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50 hover:text-gray-900 dark:hover:text-white transition-all group"
-                        >
-                            <div className="flex h-10 w-10 items-center justify-center rounded-lg text-gray-500 dark:text-gray-400 group-hover:rotate-45 transition-transform">
-                                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.1a2 2 0 0 1-1-1.72v-.51a2 2 0 0 1 1-1.74l-.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"></path><circle cx="12" cy="12" r="3"></circle></svg>
-                            </div>
-                            Ajustes
-                        </button>
+                        {userEmail === 'ramon.naciff@gmail.com' && (
+                            <button
+                                onClick={() => {
+                                    setOpen(false);
+                                    window.dispatchEvent(new CustomEvent("open-settings"));
+                                }}
+                                className="flex w-full items-center gap-3 rounded-lg px-3 py-1.5 text-sm font-semibold text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50 hover:text-gray-900 dark:hover:text-white transition-all group"
+                            >
+                                <div className="flex h-8 w-8 items-center justify-center rounded-lg text-gray-500 dark:text-gray-400 group-hover:rotate-45 transition-transform">
+                                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.1a2 2 0 0 1-1-1.72v-.51a2 2 0 0 1 1-1.74l-.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                                </div>
+                                Ajustes
+                            </button>
+                        )}
 
                         <a
                             href="/help"
-                            className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-semibold text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50 hover:text-gray-900 dark:hover:text-white transition-all group"
+                            className="flex items-center gap-3 rounded-lg px-3 py-1.5 text-sm font-semibold text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50 hover:text-gray-900 dark:hover:text-white transition-all group"
                         >
-                            <div className="flex h-10 w-10 items-center justify-center rounded-lg text-gray-500 dark:text-gray-400 group-hover:scale-110 transition-transform">
+                            <div className="flex h-8 w-8 items-center justify-center rounded-lg text-gray-500 dark:text-gray-400 group-hover:scale-110 transition-transform">
                                 <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
                             </div>
                             Ajuda
@@ -208,13 +210,13 @@ export function UserDropdown({ displayName, avatarUrl }: { displayName: string, 
 
                     <div className="h-px bg-gray-100 dark:bg-gray-700 mx-2" />
 
-                    <div className="p-1.5">
+                    <div className="p-1">
                         <form action="/auth/logout" method="post">
                             <button
                                 type="submit"
-                                className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-semibold text-gray-600 dark:text-gray-300 hover:bg-red-50 dark:hover:bg-red-900/10 hover:text-red-600 transition-all group"
+                                className="flex w-full items-center gap-3 rounded-lg px-3 py-1.5 text-sm font-semibold text-gray-600 dark:text-gray-300 hover:bg-red-50 dark:hover:bg-red-900/10 hover:text-red-600 transition-all group"
                             >
-                                <div className="flex h-10 w-10 items-center justify-center rounded-lg text-gray-500 dark:text-gray-400 group-hover:text-red-500 group-hover:translate-x-1 transition-all">
+                                <div className="flex h-8 w-8 items-center justify-center rounded-lg text-gray-500 dark:text-gray-400 group-hover:text-red-500 group-hover:translate-x-1 transition-all">
                                     <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
                                 </div>
                                 Sair
@@ -367,13 +369,13 @@ export function SettingsDrawer() {
                             <div className="pt-2">
                                 <span className="text-[10px] font-bold text-gray-400 uppercase tracking-tight mb-3 block">Posição</span>
                                 <div className="grid grid-cols-2 gap-2">
-                                    {['sticky', 'static'].map((pos) => (
+                                    {['fixed', 'static'].map((pos) => (
                                         <button
                                             key={pos}
                                             onClick={() => updateFooter({ position: pos as any })}
                                             className={`py-2 text-[10px] font-bold uppercase rounded-lg border transition-all ${settings.footer.position === pos ? 'bg-teal-50 border-teal-200 text-teal-600' : 'bg-white dark:bg-gray-800 border-black/5 dark:border-white/5 text-gray-400'}`}
                                         >
-                                            {pos === 'sticky' ? 'Fixo' : 'Base'}
+                                            {pos === 'fixed' ? 'Fixo' : 'Base'}
                                         </button>
                                     ))}
                                 </div>
